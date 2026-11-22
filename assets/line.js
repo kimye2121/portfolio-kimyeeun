@@ -22,7 +22,7 @@
     const nodes = hs.map(h => h.querySelector('.node'));
     const hero = steps.closest('.hero');
 
-    const wide = matchMedia('(min-width:900px) and (min-height:640px)');
+    const wide = matchMedia('(min-width:900px) and (min-height:560px)');
     let lead = 0;                                   // seconds spent drawing the part that comes in from off-screen
     const layout = () => {
       const p = hs.map(h => [h.offsetLeft, h.offsetTop]);
@@ -118,7 +118,7 @@
   const proj = document.querySelector('.proj');
   const projSteps = proj ? [...proj.querySelectorAll('.step')] : [];
   const cards = proj ? [...proj.querySelectorAll('.card')] : [];
-  const pinned = matchMedia('(min-width:900px) and (min-height:640px)');
+  const pinned = matchMedia('(min-width:900px) and (min-height:560px)');
   let active = -2;   // -2: nothing applied yet · -1: arriving (first project shown, closed)
   let busyUntil = 0;
   function projUpdate() {
@@ -267,11 +267,6 @@
   addEventListener('scroll', frame, { passive: true });
   addEventListener('resize', () => { active = -2; frame(); });
   frame();
-
-  /* ---------- PDF buttons: until the file is uploaded to assets/docs/, show them as "준비 중" instead of a 404 ---------- */
-  document.querySelectorAll('a.doc').forEach(a => fetch(a.href, { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; }).catch(() => {
-    a.classList.add('soon'); a.setAttribute('aria-disabled', 'true'); a.removeAttribute('href'); a.title = '준비 중입니다';
-  }));
 
   /* ---------- header state + nav highlight + reveal ---------- */
   const top = document.querySelector('.top');
