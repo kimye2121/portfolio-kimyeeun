@@ -114,6 +114,12 @@ main,header,footer,section{position:relative}
 .hero-title em{font-style:normal;color:var(--blue)}
 .hero-contact{position:absolute;left:max(40px,calc((100vw - var(--maxw))/2 + 40px));bottom:56px;color:var(--ink-3);font-size:15px;z-index:2}
 .hero-contact a:hover{color:var(--blue)}
+/* resume button on the cover: sits right above the contact line */
+.hero-doc{position:absolute;left:max(40px,calc((100vw - var(--maxw))/2 + 40px));bottom:96px;z-index:2;display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:999px;background:var(--blue);color:#fff;font-size:14.5px;font-weight:600;transition:background .25s var(--ease)}
+.hero-doc:hover{background:var(--blue-600)}
+.hero-doc.soon{background:#fff;color:var(--ink-2);border:1px solid var(--rule)}
+.hero-doc.soon::after{content:"준비 중";font-size:12px;font-weight:600;color:var(--ink-4);background:var(--bg-2);padding:2px 8px;border-radius:999px}
 .hero-steps{position:relative;height:min(78vh,760px);z-index:2}
 .hstep{position:absolute;display:block}
 .hstep .node{left:0;top:0}
@@ -220,7 +226,6 @@ main,header,footer,section{position:relative}
 .btn.primary:hover{background:var(--blue-600);color:#fff}
 .doc.soon{color:var(--ink-4);cursor:default;pointer-events:none}
 .btn.doc.soon::after{content:"준비 중";font-size:12px;font-weight:600;color:var(--ink-4);background:var(--bg-2);padding:2px 8px;border-radius:999px}
-.hero-contact .doc.soon::after{content:" (준비 중)";font-size:12px}
 .foot{color:var(--ink-4);font-size:13px;padding:40px 0 48px;text-align:center}
 
 /* ============ Case study pages ============ */
@@ -295,12 +300,13 @@ main,header,footer,section{position:relative}
   .wrap{padding:0 20px 0 var(--gutter)}
   .top .wrap,.hero .wrap{padding-left:20px}
   .nav{gap:16px;font-size:14px}
-  .nav a.hide-sm,.hero-contact .hide-sm{display:none}
+  .nav a.hide-sm{display:none}
   .hero .wrap{grid-template-columns:1fr;align-content:center;gap:24px;padding-top:96px;padding-bottom:110px}
   .hero-steps{height:300px;margin-left:12px}
   .hstep.s1{left:4%;top:8%}.hstep.s2{left:22%;top:46%}.hstep.s3{left:40%;top:84%}
   .hero-title span{white-space:normal}
   .hero-contact{left:auto;right:20px;bottom:28px;font-size:13.5px;text-align:right}
+  .hero-doc{left:auto;right:20px;bottom:62px;padding:8px 14px;font-size:13.5px}
   .scroll-cue{display:none}
   .sec{padding:120px 0 20px}
   .profile{flex-direction:column;text-align:center;gap:18px}
