@@ -32,11 +32,11 @@
       grad.setAttribute('x1', b[0]); grad.setAttribute('y1', b[1]);
       grad.setAttribute('x2', e[0]); grad.setAttribute('y2', e[1]);
       // gray diagonal = the same line as the steps, extended to the hero's top and bottom edges
-      const hr = hero.getBoundingClientRect();
-      const c = n => { const r = n.getBoundingClientRect(); return [r.left + r.width / 2 - hr.left, r.top + r.height / 2 - hr.top]; };
-      const A = c(nodes[0]), B = c(nodes[nodes.length - 1]), m = (B[0] - A[0]) / (B[1] - A[1]);
+      // offsets, not rects: unaffected by the cover scale while scrolled
+      const ox = steps.offsetParent.offsetLeft + steps.offsetLeft, oy = steps.offsetParent.offsetTop + steps.offsetTop;
+      const A = [ox + p[0][0], oy + p[0][1]], B = [ox + b[0], oy + b[1]], m = (B[0] - A[0]) / (B[1] - A[1]);
       hero.style.setProperty('--x0', (A[0] - m * A[1]) + 'px');
-      hero.style.setProperty('--x1', (A[0] + m * (hr.height - A[1])) + 'px');
+      hero.style.setProperty('--x1', (A[0] + m * (hero.offsetHeight - A[1])) + 'px');
     };
     layout();
     addEventListener('resize', layout);
@@ -95,6 +95,7 @@
   const secs = navLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
   addEventListener('scroll', () => {
     top && top.classList.toggle('scrolled', scrollY > 24);
+    if (steps) steps.closest('.hero').style.setProperty('--cover', Math.min(1, scrollY / innerHeight));
     const y = scrollY + innerHeight * 0.4;
     let act = null; secs.forEach(s => { if (s.offsetTop <= y) act = s.id; });
     navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + act));
