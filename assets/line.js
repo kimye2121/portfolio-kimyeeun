@@ -1,114 +1,94 @@
-/* One continuous line from the first node to the last.
-   Every element with [data-flow] is a stop. The line is drawn
-   as you scroll; nodes it has passed light up, the latest one is filled. */
+/* The line: Why → Decide → Validate in the hero, then a rail per section.
+   Lines live only in the empty left gutter (or the hero's open space) and never
+   cross content; between sections they fade out instead of cutting across. */
 (function () {
   const NS = 'http://www.w3.org/2000/svg';
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('class', 'flow');
-  svg.setAttribute('aria-hidden', 'true');
-  const base = document.createElementNS(NS, 'path');
-  const prog = document.createElementNS(NS, 'path');
-  base.setAttribute('class', 'base');
-  prog.setAttribute('class', 'prog');
-  svg.append(base, prog);
-  document.body.prepend(svg);
+  /* ---------- 1. Hero: drawn once on load, then extends past Validate ---------- */
+  const steps = document.querySelector('.hero-steps');
+  if (steps) {
+    const hs = [...steps.querySelectorAll('.hstep')];
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'hero-line');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML =
+      '<defs><linearGradient id="fade" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#376BFF"/><stop offset="1" stop-color="#376BFF" stop-opacity="0"/></linearGradient></defs>' +
+      '<path class="main" pathLength="1"/><path class="ext" pathLength="1" stroke="url(#fade)"/>';
+    steps.prepend(svg);
+    const [main, ext] = svg.querySelectorAll('path');
+    const grad = svg.querySelector('linearGradient');
 
-  let nodeLen = [];
-  let nodes = [], pts = [], total = 0, table = [], introLen = 0, introDone = reduce, introStart = 0;
+    const layout = () => {
+      const p = hs.map(h => [h.offsetLeft, h.offsetTop]);
+      main.setAttribute('d', 'M' + p.map(q => q.join(',')).join(' L'));
+      // keep going on the Decide→Validate slope; short on mobile so it never reaches the contact line
+      const [a, b] = p.slice(-2), dx = b[0] - a[0], dy = b[1] - a[1];
+      const len = innerWidth > 760 ? 420 : 90, k = len / Math.hypot(dx, dy);
+      const e = [b[0] + dx * k, b[1] + dy * k];
+      ext.setAttribute('d', `M${b} L${e}`);
+      grad.setAttribute('x1', b[0]); grad.setAttribute('y1', b[1]);
+      grad.setAttribute('x2', e[0]); grad.setAttribute('y2', e[1]);
+    };
+    layout();
+    addEventListener('resize', layout);
+    if (document.fonts) document.fonts.ready.then(layout);
 
-  function center(el) {
-    const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2 + window.scrollX, y: r.top + r.height / 2 + window.scrollY, straight: el.hasAttribute('data-straight') };
+    const nodes = hs.map(h => h.querySelector('.node'));
+    const light = i => { nodes.forEach((n, j) => { n.classList.toggle('on', j <= i); n.classList.toggle('current', j === i); }); };
+    if (reduce) { svg.classList.add('drawn'); light(2); }
+    else {
+      requestAnimationFrame(() => requestAnimationFrame(() => svg.classList.add('drawn')));
+      [150, 900, 1650].forEach((t, i) => setTimeout(() => light(i), t)); // matches the CSS draw timing
+    }
   }
 
-  function build() {
-    svg.style.height = '0px';
-    const W = document.documentElement.clientWidth;
-    const H = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-    svg.setAttribute('width', W); svg.setAttribute('height', H);
-    svg.style.width = W + 'px'; svg.style.height = H + 'px';
+  /* ---------- 2. Section rails: grow with scroll, fade at the end ---------- */
+  const rails = [...document.querySelectorAll('.sec-head > .node')].map(node => {
+    const head = node.parentElement, wrap = head.parentElement;
+    const rail = document.createElement('span');
+    rail.className = 'rail'; rail.setAttribute('aria-hidden', 'true');
+    rail.innerHTML = '<i></i>';
+    wrap.prepend(rail);
+    return { node, head, rail };
+  });
+  const ends = [...document.querySelectorAll('.node.lg')];
 
-    nodes = [...document.querySelectorAll('[data-flow]')].filter(n => n.offsetParent !== null);
-    pts = nodes.map(center);
-    if (pts.length < 2) return;
-
-    let d = `M${pts[0].x},${pts[0].y}`;
-    for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1], b = pts[i];
-      if (a.straight && b.straight) { d += ` L${b.x},${b.y}`; continue; }
-      const dy = Math.max(60, (b.y - a.y) * 0.5);
-      d += ` C${a.x},${a.y + dy} ${b.x},${b.y - dy} ${b.x},${b.y}`;
-    }
-    base.setAttribute('d', d); prog.setAttribute('d', d);
-    total = prog.getTotalLength();
-    prog.style.strokeDasharray = total;
-
-    // length → y lookup (y is monotonic along the path)
-    table = [];
-    const N = Math.min(1600, Math.max(300, Math.round(total / 6)));
-    let maxY = -Infinity;
-    for (let i = 0; i <= N; i++) {
-      const l = (total * i) / N;
-      maxY = Math.max(maxY, prog.getPointAtLength(l).y);
-      table.push([l, maxY]);
-    }
-    // length up to the last "straight" (hero) node, for the intro draw
-    const lastStraight = pts.map(p => p.straight).lastIndexOf(true);
-    nodeLen = pts.map((p, i) => i === 0 ? 0 : (i === pts.length - 1 ? total : lenAtY(p.y)));
-    introLen = lastStraight > 0 ? nodeLen[lastStraight] : 0;
+  function place() {
+    rails.forEach(r => { r.rail.style.top = (r.head.offsetTop + r.node.offsetTop) + 'px'; });
     update();
   }
 
-  function lenAtY(y) {
-    let lo = 0, hi = table.length - 1;
-    if (y <= table[0][1]) return 0;
-    if (y >= table[hi][1]) return total;
-    while (hi - lo > 1) { const m = (lo + hi) >> 1; table[m][1] <= y ? lo = m : hi = m; }
-    return table[lo][0];
-  }
-
   function update() {
-    if (!table.length) return;
-    const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
-    const target = atBottom ? Infinity : window.scrollY + window.innerHeight * 0.62;
-    let len = lenAtY(target);
-    if (introLen) {
-      const t = introDone ? 1 : Math.min(1, (performance.now() - introStart) / 1600);
-      const e = 1 - Math.pow(1 - t, 3);
-      len = Math.max(len, introLen * e);
-      if (!introDone && t < 1) requestAnimationFrame(update); else introDone = true;
-    }
-    prog.style.strokeDashoffset = total - len;
-
-    let current = -1;
-    pts.forEach((p, i) => {
-      const reached = len >= nodeLen[i] - 2;
-      nodes[i].classList.toggle('on', reached);
-      if (reached) current = i;
+    const anchor = innerHeight * 0.62;
+    const atBottom = scrollY + innerHeight >= document.documentElement.scrollHeight - 4;
+    const flow = [];
+    rails.forEach(r => {
+      const b = r.rail.getBoundingClientRect();
+      const p = atBottom ? 1 : Math.min(1, Math.max(0, (anchor - b.top) / b.height));
+      r.rail.style.setProperty('--p', p);
+      flow.push([r.node, atBottom || b.top <= anchor]);
     });
-    nodes.forEach((n, i) => n.classList.toggle('current', i === current));
+    ends.forEach(n => flow.push([n, atBottom || n.getBoundingClientRect().top <= anchor]));
+    let cur = null;
+    flow.forEach(([n, hit]) => { n.classList.toggle('on', hit); if (hit) cur = n; });
+    flow.forEach(([n]) => n.classList.toggle('current', n === cur));
   }
 
   let raf = 0;
-  const onScroll = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  let rt; const rebuild = () => { clearTimeout(rt); rt = setTimeout(build, 80); };
-  window.addEventListener('resize', rebuild);
-  new ResizeObserver(rebuild).observe(document.querySelector('main') || document.body);
-  window.addEventListener('load', build);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
-  introStart = performance.now();
-  build();
+  addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); }, { passive: true });
+  addEventListener('resize', place);
+  addEventListener('load', place);
+  if (document.fonts) document.fonts.ready.then(place);
+  place();
 
-  /* header state + reveal */
+  /* ---------- header state + nav highlight + reveal ---------- */
   const top = document.querySelector('.top');
   const navLinks = [...document.querySelectorAll('.nav a[href^="#"]')];
   const secs = navLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
-  window.addEventListener('scroll', () => {
-    top && top.classList.toggle('scrolled', window.scrollY > 24);
-    const y = window.scrollY + window.innerHeight * 0.4;
+  addEventListener('scroll', () => {
+    top && top.classList.toggle('scrolled', scrollY > 24);
+    const y = scrollY + innerHeight * 0.4;
     let act = null; secs.forEach(s => { if (s.offsetTop <= y) act = s.id; });
     navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + act));
   }, { passive: true });

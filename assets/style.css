@@ -33,11 +33,17 @@ a{color:inherit;text-decoration:none}
 ::selection{background:var(--blue);color:#fff}
 :focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:6px}
 
-/* ============ Flow line (drawn by line.js) ============ */
-.flow{position:absolute;left:0;top:0;pointer-events:none;z-index:1;overflow:visible}
-.flow path{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.flow .base{stroke:var(--line-base);stroke-width:2}
-.flow .prog{stroke:var(--blue);stroke-width:2.5}
+/* ============ The line (line.js) ============ */
+/* hero: Why → Decide → Validate, drawn once, then extends and fades */
+.hero-line{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.hero-line path{fill:none;stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+.hero-line .main{stroke:var(--blue);transition:stroke-dashoffset 1.5s linear .15s}
+.hero-line .ext{transition:stroke-dashoffset .9s var(--ease) 1.65s}
+.hero-line.drawn path{stroke-dashoffset:0}
+/* sections: a rail in the empty gutter that fills as you scroll and fades at the end */
+.rail{position:absolute;left:var(--node-x);bottom:0;width:2px;margin-left:-1px;background:var(--line-base);pointer-events:none;
+  -webkit-mask-image:linear-gradient(#000 calc(100% - 120px),transparent);mask-image:linear-gradient(#000 calc(100% - 120px),transparent)}
+.rail i{display:block;height:100%;background:var(--blue);transform:scaleY(var(--p,0));transform-origin:top}
 main,header,footer,section{position:relative}
 .on-top{position:relative;z-index:2}
 
@@ -49,7 +55,8 @@ main,header,footer,section{position:relative}
 }
 .node.on{border-color:var(--blue-300)}
 .node.current{background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 8px rgba(55,107,255,.12)}
-.node.lg{width:56px;height:56px}
+.node.lg{width:56px;height:56px;transform:translate(-50%,-50%) scale(.4);opacity:.4}
+.node.lg.on{transform:translate(-50%,-50%) scale(1);opacity:1;transition-duration:.6s}
 .node.lg.current{box-shadow:0 0 0 14px rgba(55,107,255,.10)}
 
 /* ============ Layout ============ */
@@ -57,6 +64,7 @@ main,header,footer,section{position:relative}
 .sec{padding:160px 0 40px}
 .sec-head{position:relative;margin-bottom:56px}
 .sec-head .node{left:calc(var(--node-x) - var(--gutter));top:15px}
+.sec-head{z-index:3}
 .kicker{display:inline-block;color:var(--blue);font-weight:700;font-size:17px;letter-spacing:0;margin-bottom:24px}
 .kicker .step{color:var(--ink-4);font-weight:600;margin-right:8px}
 .h1{font-size:clamp(30px,3.6vw,52px);line-height:1.28;font-weight:800;letter-spacing:-.035em}
@@ -106,8 +114,9 @@ main,header,footer,section{position:relative}
 /* ============ About ============ */
 .about-grid>*{min-width:0}
 .about-grid{display:grid;grid-template-columns:minmax(260px,.8fr) 1.5fr;gap:72px;align-items:start}
-.portrait{position:sticky;top:110px;border-radius:24px;overflow:hidden;background:var(--bg-2);aspect-ratio:4/5}
-.portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 20%}
+.portrait{position:sticky;top:110px;aspect-ratio:4/5;display:flex;align-items:flex-end}
+.portrait::before{content:"";position:absolute;inset:0;background:var(--bg-2);clip-path:polygon(0 0,58% 0,100% 100%,0 100%)}
+.portrait img{position:relative;width:100%;height:auto}
 .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:48px}
 .pillar{border-top:1px solid var(--rule);padding-top:20px}
 .pillar h3{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
@@ -117,11 +126,11 @@ main,header,footer,section{position:relative}
 .process{margin:72px 0 24px;position:relative}
 .process svg{width:100%;height:auto;overflow:visible}
 .process .grp{fill:var(--blue-50)}
-.process .ph{font-size:15px;font-weight:600;fill:var(--blue);letter-spacing:0}
-.process .c1{fill:#8FAEFF}.process .c2{fill:#5C87FF}.process .c3{fill:#376BFF}
-.process .ct{fill:#fff;font-size:16px;font-weight:500;text-anchor:middle;dominant-baseline:central}
+.process .ph{font-size:21px;font-weight:600;fill:var(--blue);letter-spacing:0}
+.process .c1{fill:#7598FF}.process .c2{fill:#5C87FF}.process .c3{fill:#376BFF}
+.process .ct{fill:#fff;font-size:22px;font-weight:600;text-anchor:middle;dominant-baseline:central}
 .process .ln{stroke:var(--blue);stroke-width:1.5;fill:none}
-.process .lb{fill:var(--blue);font-size:15px;font-weight:500;text-anchor:middle}
+.process .lb{fill:var(--blue);font-size:21px;font-weight:500;text-anchor:middle}
 
 .facts{display:grid;grid-template-columns:1fr;gap:40px;margin-top:56px}
 .facts h4{font-size:17px;font-weight:700;margin-bottom:14px}
@@ -242,8 +251,8 @@ main,header,footer,section{position:relative}
 .next:hover h2{color:var(--blue)}
 
 /* ============ Reveal ============ */
-.rv{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
-.rv.in{opacity:1;transform:none}
+.js .rv{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.js .rv.in{opacity:1;transform:none}
 
 /* ============ Responsive ============ */
 @media (max-width:1080px){
@@ -274,10 +283,11 @@ main,header,footer,section{position:relative}
   .node{width:22px;height:22px}
   .node.lg{width:44px;height:44px}
   .process{overflow-x:auto;margin-right:-20px;padding-bottom:8px}
-  .process svg{min-width:640px}
+  .process svg{min-width:720px}
+  .br-pc{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
-  .hero-title span,.rv{opacity:1;transform:none}
+  .hero-title span,.js .rv{opacity:1;transform:none}
   html{scroll-behavior:auto}
 }
