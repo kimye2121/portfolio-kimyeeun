@@ -218,6 +218,9 @@ main,header,footer,section{position:relative}
 .btn:hover{border-color:var(--blue);color:var(--blue)}
 .btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 .btn.primary:hover{background:var(--blue-600);color:#fff}
+.doc.soon{color:var(--ink-4);cursor:default;pointer-events:none}
+.btn.doc.soon::after{content:"준비 중";font-size:12px;font-weight:600;color:var(--ink-4);background:var(--bg-2);padding:2px 8px;border-radius:999px}
+.hero-contact .doc.soon::after{content:" (준비 중)";font-size:12px}
 .foot{color:var(--ink-4);font-size:13px;padding:40px 0 48px;text-align:center}
 
 /* ============ Case study pages ============ */
@@ -292,7 +295,7 @@ main,header,footer,section{position:relative}
   .wrap{padding:0 20px 0 var(--gutter)}
   .top .wrap,.hero .wrap{padding-left:20px}
   .nav{gap:16px;font-size:14px}
-  .nav a.hide-sm{display:none}
+  .nav a.hide-sm,.hero-contact .hide-sm{display:none}
   .hero .wrap{grid-template-columns:1fr;align-content:center;gap:24px;padding-top:96px;padding-bottom:110px}
   .hero-steps{height:300px;margin-left:12px}
   .hstep.s1{left:4%;top:8%}.hstep.s2{left:22%;top:46%}.hstep.s3{left:40%;top:84%}
