@@ -230,6 +230,11 @@
     if (document.fonts) document.fonts.ready.then(morphLayout);
   }
 
+  // "Projects" links land on the projects view itself (heading + first project), not on the empty turning stage
+  const toProjects = smooth => { if (mg) scrollTo({ top: stepTop(0), behavior: smooth && !reduce ? 'smooth' : 'auto' }); };
+  document.querySelectorAll('a[href="#projects"]').forEach(a => a.addEventListener('click', e => { if (mg) { e.preventDefault(); toProjects(true); history.replaceState(null, '', '#projects'); } }));
+  if (location.hash === '#projects') addEventListener('load', () => toProjects(false));
+
   const frame = () => { lift(); projUpdate(); if (morph) morphUpdate(); };
   addEventListener('scroll', frame, { passive: true });
   addEventListener('resize', () => { active = -2; frame(); });
