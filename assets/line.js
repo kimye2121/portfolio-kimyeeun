@@ -189,7 +189,8 @@
       const dx = S[2][0] - S[0][0], dy = S[2][1] - S[0][1], P = [S[0][0] + (by - S[0][1]) * dx / dy, by];
       const sgn = by >= S[0][1] ? 1 : -1;
       const L0 = sgn * Math.hypot(P[0] - S[0][0], P[1] - S[0][1]), R0 = Math.hypot(S[2][0] - P[0], S[2][1] - P[1]);
-      const L1 = P[0] - bx0, R1 = bx0 + bw - P[0];                       // ends exactly where the project bar ends
+      const last = bar.querySelector('.step:last-of-type');
+      const L1 = P[0] - bx0, R1 = bx0 + last.offsetLeft + last.offsetWidth / 2 - P[0];   // ends at the last project's circle
       mg = { top, S, P, a0: Math.atan2(dy, dx), L0, R0, L1, R1 };
     }
     const mix = (a, b, k) => a + (b - a) * k, clamp = v => Math.min(1, Math.max(0, v));
