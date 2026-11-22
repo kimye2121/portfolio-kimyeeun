@@ -116,7 +116,7 @@
     active = i;
     cards.forEach((c, k) => c.classList.toggle('active', k === i));
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
-    proj.querySelector('.steps').style.setProperty('--fill', i < 0 ? '0%' : ((i + 0.5) / cards.length * 100) + '%');
+    proj.querySelector('.steps').style.setProperty('--fill', i < 0 ? '100%' : ((i + 0.5) / cards.length * 100) + '%');
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
   const stepStart = () => proj.offsetTop + mainEl.offsetTop + intro();          // stepping begins after the intro
@@ -190,12 +190,15 @@
       mainEl.style.setProperty('--slide', mg ? 1 - Math.pow(1 - clamp((s - a2) / (a3 - a2)), 3) : 1); // ease-out arrival
       if (!on) { morph.style.display = bg.style.display = 'none'; return; }
       const r = clamp((s - a1) / (a2 - a1));
-      const k = r < .5 ? 4 * r * r * r : 1 - Math.pow(-2 * r + 2, 3) / 2;  // ease in-out: sets off gently, lands gently
-      const x = mix(mg.start.x, mg.end.x, k), y = mix(mg.start.y, mg.end.y, k);
-      const ang = mix(mg.start.ang, mg.end.ang, k), len = mix(mg.start.len, mg.end.len, k);
+      const ease = v => (v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);  // sets off gently, lands gently
+      const k = ease(r), kEnd = ease(clamp(r * 1.35));                       // the left end settles first…
+      const q = 1 - Math.pow(1 - clamp((s - a2) / (a3 - a2)), 3);            // …then the tip keeps going right with the projects
+      const x = mix(mg.start.x, mg.end.x, kEnd), y = mix(mg.start.y, mg.end.y, kEnd);
+      const ang = mix(mg.start.ang, mg.end.ang, k);
+      const len = r < 1 ? mix(mg.start.len, mg.end.len * 0.55, k) : mix(mg.end.len * 0.55, mg.end.len, q);
       morph.style.display = bg.style.display = 'block';
       mLine.style.cssText = `left:${x}px;top:${y}px;width:${len}px;transform:rotate(${ang}rad)`;
-      mFill.style.width = mix(100, 0, k) + '%';                              // blue line → plain bar, filled again when a project opens
+      mFill.style.width = '100%';                                            // one blue line, only ever growing at its tip
       bgHalf.style.cssText = `left:${x}px;top:${y}px;transform:rotate(${ang}rad) translateX(-3000px);opacity:${clamp(1 - (k - .45) / .45)}`;
       const nodeA = clamp(1 - s / (a1 * 0.5));                               // the circles go first; only the line carries on
       const c = Math.cos(ang), sn = Math.sin(ang);
