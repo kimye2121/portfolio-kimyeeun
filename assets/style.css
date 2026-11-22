@@ -139,6 +139,9 @@ main,header,footer,section{position:relative}
 .facts li{display:grid;grid-template-columns:136px 1fr;gap:16px;padding:12px 0;border-top:1px solid var(--rule);font-size:15.5px;color:var(--ink-2)}
 .facts li time{color:var(--ink-4);font-variant-numeric:tabular-nums}
 .facts li small{display:block;color:var(--ink-4);font-size:13.5px}
+.facts .skills{grid-column:1/-1}
+.facts .skills ul{display:grid;grid-template-columns:1fr 1fr;column-gap:56px}
+.facts li b{color:var(--ink-4);font-weight:400}
 
 /* ============ Project cards ============ */
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
@@ -277,7 +280,7 @@ main,header,footer,section{position:relative}
   .hero-contact{left:auto;right:20px;bottom:28px;font-size:13.5px;text-align:right}
   .scroll-cue{display:none}
   .sec{padding:120px 0 20px}
-  .facts,.pillars,.cards,.archive,.summary,.deliverables,.figs{grid-template-columns:1fr}
+  .facts,.facts .skills ul,.pillars,.cards,.archive,.summary,.deliverables,.figs{grid-template-columns:1fr}
   .facts li{grid-template-columns:1fr;gap:2px}
   .cs-meta{grid-template-columns:1fr}
   .cs-hero::before{clip-path:polygon(0 0,100% 0,100% 40%,0 60%)}
