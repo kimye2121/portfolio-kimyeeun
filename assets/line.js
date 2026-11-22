@@ -9,36 +9,24 @@
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   if (!location.hash) scrollTo(0, 0);
 
-  /* ---------- 1. Hero: drawn once on load, then extends past Validate ---------- */
+  /* ---------- 1. Hero: Why → Decide → Validate, drawn once on load ---------- */
   const steps = document.querySelector('.hero-steps');
   if (steps) {
     const hs = [...steps.querySelectorAll('.hstep')];
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'hero-line');
     svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML =
-      '<defs><linearGradient id="fade" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#376BFF"/><stop offset="1" stop-color="#376BFF" stop-opacity="0"/></linearGradient></defs>' +
-      '<path class="main" pathLength="1"/><path class="ext" pathLength="1" stroke="url(#fade)"/>';
+    svg.innerHTML = '<path class="main" pathLength="1"/><path class="conn" pathLength="1"/>';
     steps.prepend(svg);
-    const [main, ext] = svg.querySelectorAll('path');
-    const grad = svg.querySelector('linearGradient');
+    const main = svg.querySelector('.main');
     const nodes = hs.map(h => h.querySelector('.node'));
     const hero = steps.closest('.hero');
 
     const layout = () => {
       const p = hs.map(h => [h.offsetLeft, h.offsetTop]);
       main.setAttribute('d', 'M' + p.map(q => q.join(',')).join(' L'));
-      // keep going on the Decide→Validate slope; short on mobile so it never reaches the contact line
-      const [a, b] = p.slice(-2), dx = b[0] - a[0], dy = b[1] - a[1];
-      const len = innerWidth > 760 ? 420 : 90, k = len / Math.hypot(dx, dy);
-      const e = [b[0] + dx * k, b[1] + dy * k];
-      ext.setAttribute('d', `M${b} L${e}`);
-      grad.setAttribute('x1', b[0]); grad.setAttribute('y1', b[1]);
-      grad.setAttribute('x2', e[0]); grad.setAttribute('y2', e[1]);
-      // continue at the same speed as the main line (2.6s, see .hero-line .main) so it never speeds up
-      ext.style.transitionDuration = (2.6 * len / main.getTotalLength()) + 's';
+      const b = p[p.length - 1];
       // gray diagonal = the same line as the steps, extended to the hero's top and bottom edges
-      // offsets, not rects: unaffected by the cover scale while scrolled
       const ox = steps.offsetParent.offsetLeft + steps.offsetLeft, oy = steps.offsetParent.offsetTop + steps.offsetTop;
       const A = [ox + p[0][0], oy + p[0][1]], B = [ox + b[0], oy + b[1]], m = (B[0] - A[0]) / (B[1] - A[1]);
       hero.style.setProperty('--x0', (A[0] - m * A[1]) + 'px');
@@ -153,7 +141,50 @@
     if (Math.abs(dy) > 30) { step(Math.sign(dy), e); if (e.defaultPrevented) ty = null; }
   }, { passive: false });
 
-  const frame = () => { lift(); projUpdate(); };
+  /* ---------- 5. Connector: on scroll, Validate → across to the rail → down into Projects → onto the project line ---------- */
+  const heroConn = document.querySelector('.hero-line .conn');
+  const pNode = proj && proj.querySelector('.sec-head > .node');
+  let pConn = null, geo = null;
+  if (heroConn && pNode) {
+    const wrap = pNode.parentElement.parentElement;
+    pConn = document.createElementNS(NS, 'svg');
+    pConn.setAttribute('class', 'conn'); pConn.setAttribute('aria-hidden', 'true');
+    pConn.innerHTML = '<path pathLength="1"/>';
+    wrap.prepend(pConn);
+    const stepsBar = proj.querySelector('.steps');
+    function connLayout() {
+      const head = pNode.parentElement;
+      const nx = head.offsetLeft + pNode.offsetLeft, ny = head.offsetTop + pNode.offsetTop;  // node centre in the wrap
+      const y0 = -parseFloat(getComputedStyle(proj).paddingTop);                            // section top in the wrap
+      let d = `M${nx},${y0} L${nx},${ny}`, yEnd = ny;
+      if (pinned.matches && stepsBar.offsetParent) {                                        // pinned: carry on to the project line
+        const sy = stepsBar.offsetTop + 1; yEnd = sy;
+        d += ` L${nx},${sy} L${stepsBar.offsetLeft},${sy}`;
+      }
+      pConn.firstChild.setAttribute('d', d);
+      // hero part, in the hero svg's coordinates (the svg sits at the steps box)
+      const ox = steps.offsetParent.offsetLeft + steps.offsetLeft, oy = steps.offsetParent.offsetTop + steps.offsetTop;
+      const last = steps.querySelector('.hstep:last-child'), vx = last.offsetLeft, vy = last.offsetTop;
+      const rx = wrap.offsetLeft + nx - ox, bottom = heroEl.offsetHeight - oy;
+      heroConn.setAttribute('d', `M${vx},${vy} L${rx},${vy} L${rx},${bottom}`);
+      geo = { secTop: () => proj.offsetTop + mainEl.offsetTop, y0, yEnd };
+    }
+    function connUpdate() {
+      if (!geo) return;
+      const vh = innerHeight, h = heroEl.offsetHeight;
+      const a = Math.min(1, Math.max(0, scrollY / Math.max(1, h - vh * 0.5)));               // done when the hero bottom reaches mid-screen
+      const top = geo.secTop();                                                              // section top = path start
+      const b = Math.min(1, Math.max(0, (scrollY + vh * 0.5 - top) / Math.max(1, geo.yEnd - geo.y0)));
+      heroConn.style.strokeDashoffset = 1 - a;
+      pConn.firstChild.style.strokeDashoffset = 1 - b;
+    }
+    connLayout();
+    addEventListener('resize', connLayout);
+    addEventListener('load', connLayout);
+    if (document.fonts) document.fonts.ready.then(connLayout);
+  }
+
+  const frame = () => { lift(); projUpdate(); if (pConn) connUpdate(); };
   addEventListener('scroll', frame, { passive: true });
   addEventListener('resize', () => { active = -1; frame(); });
   frame();
