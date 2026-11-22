@@ -116,7 +116,8 @@ main,header,footer,section{position:relative}
 .hero-contact{position:absolute;left:max(40px,calc((100vw - var(--maxw))/2 + 40px));bottom:56px;color:var(--ink-3);font-size:15px;z-index:2}
 .hero-contact a:hover{color:var(--blue)}
 /* resume button on the cover: sits right above the contact line */
-.hero-doc{position:absolute;left:max(40px,calc((100vw - var(--maxw))/2 + 40px));bottom:96px;z-index:2;display:inline-flex;align-items:center;gap:8px;
+.hero-docs{position:absolute;left:max(40px,calc((100vw - var(--maxw))/2 + 40px));bottom:96px;z-index:2;display:flex;flex-wrap:wrap;gap:10px}
+.hero-doc{display:inline-flex;align-items:center;gap:8px;
   padding:10px 18px;border-radius:999px;background:var(--blue);color:#fff;font-size:14.5px;font-weight:600;transition:background .25s var(--ease)}
 .hero-doc:hover{background:var(--blue-600)}
 .hero-doc.soon{background:#fff;color:var(--ink-2);border:1px solid var(--rule)}
@@ -307,7 +308,8 @@ main,header,footer,section{position:relative}
   .hstep.s1{left:4%;top:8%}.hstep.s2{left:22%;top:46%}.hstep.s3{left:40%;top:84%}
   .hero-title span{white-space:normal}
   .hero-contact{left:auto;right:20px;bottom:28px;font-size:13.5px;text-align:right}
-  .hero-doc{left:auto;right:20px;bottom:62px;padding:8px 14px;font-size:13.5px}
+  .hero-docs{left:auto;right:20px;bottom:62px;justify-content:flex-end;gap:8px}
+  .hero-doc{padding:8px 14px;font-size:13.5px}
   .scroll-cue{display:none}
   .sec{padding:120px 0 20px}
   .profile{flex-direction:column;text-align:center;gap:18px}
