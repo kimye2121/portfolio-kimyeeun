@@ -85,11 +85,9 @@ main,header,footer,section{position:relative}
 .nav a:hover,.nav a.active{color:var(--blue)}
 
 /* ============ Hero ============ */
-.hero{min-height:100vh;min-height:100svh;position:relative;z-index:5;overflow:hidden;display:flex;align-items:center;
-  background:var(--bg);border-radius:0 0 36px 36px;box-shadow:0 1px 0 var(--rule),0 30px 70px rgba(16,24,40,.12)}
-/* cover: the hero is the top layer and lifts away; the page underneath holds still until it is uncovered */
-main>section:not(.hero){z-index:2;transform:translateY(var(--lift,0px))}
-#projects>.wrap{opacity:calc(.1 + .9*var(--reveal,1));transform:translateY(calc((1 - var(--reveal,1))*80px)) scale(calc(.96 + .04*var(--reveal,1)))}
+.hero{min-height:100vh;min-height:100svh;position:relative;overflow:hidden;display:flex;align-items:center}
+/* projects ease in as the hero scrolls away */
+#projects>.wrap{opacity:calc(.15 + .85*var(--reveal,1));transform:translateY(calc((1 - var(--reveal,1))*60px))}
 .hero::before{ /* the diagonal split from the slides */
   content:"";position:absolute;inset:0;background:var(--bg-2);
   clip-path:polygon(0 0,var(--x0,59%) 0,var(--x1,80%) 100%,0 100%); /* --x0/--x1 set by line.js to follow the steps line */
@@ -307,7 +305,7 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
 .steps{display:none}
 @media (min-width:900px) and (min-height:640px){
   .proj{height:300vh;padding:0}
-  .proj-pin{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;padding-top:64px}
+  .proj-pin{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:flex-start;padding-top:calc(64px + 5vh)} /* top-anchored: opening a card must not shift the heading */
   .proj .rail{display:none}
   .proj .sec-head{margin-bottom:20px}
   .proj .kicker{margin-bottom:12px}
@@ -318,7 +316,8 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
   .step .node{left:50%;top:-1px;width:18px;height:18px}
   .step.on{color:var(--ink-2)}.step.current{color:var(--blue)}
   .proj .cards{display:flex;gap:20px;align-items:flex-start}
-  .proj .card{flex:1 1 0;min-width:0;transition:flex-grow .7s var(--ease),transform .4s var(--ease),box-shadow .4s var(--ease)}
+  .proj .card{flex:1 1 0;min-width:0;transition:flex-grow .6s var(--ease),transform .4s var(--ease),box-shadow .4s var(--ease)}
+  .proj .card .thumb img{will-change:transform}
   .proj .card.active{flex-grow:2.3}
   .proj .card .thumb{aspect-ratio:auto;height:clamp(120px,22vh,240px)}
   .proj .card .body{padding:22px 26px 24px}
@@ -331,6 +330,7 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
 @media (min-width:900px) and (min-height:640px) and (max-height:860px){
   /* short laptop screens: smaller thumbnails; awards stay on the case-study page */
   .proj .card .thumb{height:18vh}
+  .proj-pin{padding-top:calc(64px + 2vh)}
   .proj .award{display:none}
   .proj .kicker{margin-bottom:6px}
 }

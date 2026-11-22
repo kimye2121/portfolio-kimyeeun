@@ -89,14 +89,9 @@
   if (document.fonts) document.fonts.ready.then(place);
   place();
 
-  /* ---------- 3. Cover: hero lifts away, the page underneath holds still ---------- */
+  /* ---------- 3. Projects ease in as the hero scrolls away ---------- */
   const heroEl = document.querySelector('.hero'), mainEl = document.querySelector('main');
-  const lift = () => {
-    if (!heroEl) return;
-    const h = heroEl.offsetHeight;
-    mainEl.style.setProperty('--lift', -Math.max(0, h - scrollY) + 'px');
-    mainEl.style.setProperty('--reveal', Math.min(1, scrollY / h)); // projects fade in as the cover lifts
-  };
+  const lift = () => { if (heroEl) mainEl.style.setProperty('--reveal', Math.min(1, scrollY / (heroEl.offsetHeight * 0.7))); };
 
   /* ---------- 4. Projects: a horizontal line; scrolling moves it and opens one project at a time ---------- */
   const proj = document.querySelector('.proj');
@@ -104,12 +99,16 @@
   const cards = proj ? [...proj.querySelectorAll('.card')] : [];
   const pinned = matchMedia('(min-width:900px) and (min-height:640px)');
   let active = -1;
+  let busyUntil = 0;
   function projUpdate() {
     if (!proj) return;
     if (!pinned.matches) { cards.forEach(c => c.classList.remove('active')); active = -1; return; }
+    if (performance.now() < busyUntil) return;           // a step is animating; it already chose the card
     const r = proj.getBoundingClientRect();
     const p = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
-    const i = Math.min(cards.length - 1, Math.floor(p * cards.length));
+    setActive(Math.min(cards.length - 1, Math.floor(p * cards.length)));
+  }
+  function setActive(i) {
     if (i === active) return;
     active = i;
     cards.forEach((c, k) => c.classList.toggle('active', k === i));
@@ -118,9 +117,9 @@
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
   const stepTop = k => proj.offsetTop + mainEl.offsetTop + (k + 0.5) / cards.length * (proj.offsetHeight - innerHeight);
-  const goTo = k => scrollTo({ top: stepTop(k), behavior: reduce ? 'auto' : 'smooth' });
+  const goTo = k => { busyUntil = performance.now() + 750; setActive(k); scrollTo({ top: stepTop(k), behavior: reduce ? 'auto' : 'smooth' }); };
   projSteps.forEach((s, k) => s.addEventListener('click', () => goTo(k)));
-  let busyUntil = 0, lastInput = 0, held = false;
+  let lastInput = 0, held = false;
   function step(dir, e) {
     if (!proj || !pinned.matches) return;
     const top = proj.offsetTop + mainEl.offsetTop, y = scrollY;
@@ -132,7 +131,7 @@
     const next = active + dir;
     if (next < 0 || next >= cards.length) return;        // first/last project: a new gesture scrolls on
     e.preventDefault();
-    held = true; busyUntil = now + 750;
+    held = true;
     goTo(next);
   }
   addEventListener('wheel', e => { if (Math.abs(e.deltaY) > 2) step(Math.sign(e.deltaY), e); }, { passive: false });
