@@ -113,7 +113,7 @@ main,header,footer,section{position:relative}
 
 /* ============ About ============ */
 .about-grid>*{min-width:0}
-.about-grid{display:grid;grid-template-columns:minmax(260px,.8fr) 1.5fr;gap:72px;align-items:start}
+.about-grid{display:grid;grid-template-columns:minmax(260px,.75fr) 1.5fr;gap:72px;align-items:end}
 .portrait{position:relative;aspect-ratio:4/5;display:flex;align-items:flex-end}
 .portrait::before{content:"";position:absolute;inset:0;background:var(--bg-2);clip-path:polygon(0 0,58% 0,100% 100%,0 100%)}
 .portrait img{position:relative;width:100%;height:auto}
@@ -132,10 +132,11 @@ main,header,footer,section{position:relative}
 .process .ln{stroke:var(--blue);stroke-width:1.5;fill:none}
 .process .lb{fill:var(--blue);font-size:21px;font-weight:500;text-anchor:middle}
 
-.facts{display:grid;grid-template-columns:1fr;gap:40px;margin-top:56px}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:48px 56px;margin-top:56px}
+.facts>:nth-child(2){grid-row:span 2}
 .facts h4{font-size:17px;font-weight:700;margin-bottom:14px}
 .facts ul{list-style:none}
-.facts li{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:12px 0;border-top:1px solid var(--rule);font-size:15.5px;color:var(--ink-2)}
+.facts li{display:grid;grid-template-columns:136px 1fr;gap:16px;padding:12px 0;border-top:1px solid var(--rule);font-size:15.5px;color:var(--ink-2)}
 .facts li time{color:var(--ink-4);font-variant-numeric:tabular-nums}
 .facts li small{display:block;color:var(--ink-4);font-size:13.5px}
 
@@ -276,7 +277,7 @@ main,header,footer,section{position:relative}
   .hero-contact{left:auto;right:20px;bottom:28px;font-size:13.5px;text-align:right}
   .scroll-cue{display:none}
   .sec{padding:120px 0 20px}
-  .pillars,.cards,.archive,.summary,.deliverables,.figs{grid-template-columns:1fr}
+  .facts,.pillars,.cards,.archive,.summary,.deliverables,.figs{grid-template-columns:1fr}
   .facts li{grid-template-columns:1fr;gap:2px}
   .cs-meta{grid-template-columns:1fr}
   .cs-hero::before{clip-path:polygon(0 0,100% 0,100% 40%,0 60%)}
