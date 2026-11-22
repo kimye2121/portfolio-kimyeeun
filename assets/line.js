@@ -116,9 +116,7 @@
     active = i;
     cards.forEach((c, k) => c.classList.toggle('active', k === i));
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
-    const sb = proj.querySelector('.steps');
-    sb.style.setProperty('--fill', i < 0 ? '100%' : ((i + 0.5) / cards.length * 100) + '%');
-    sb.classList.toggle('full', i < 0);
+    proj.querySelector('.steps').style.setProperty('--fill', i < 0 ? '100%' : ((i + 0.5) / cards.length * 100) + '%');
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
   const stepStart = () => proj.offsetTop + mainEl.offsetTop + intro();          // stepping begins after the intro
@@ -179,8 +177,8 @@
       const dx = S[2][0] - S[0][0], dy = S[2][1] - S[0][1], P = [S[0][0] + (by - S[0][1]) * dx / dy, by];
       const sgn = by >= S[0][1] ? 1 : -1;
       const L0 = sgn * Math.hypot(P[0] - S[0][0], P[1] - S[0][1]), R0 = Math.hypot(S[2][0] - P[0], S[2][1] - P[1]);
-      const L1 = P[0] - bx0, R1 = document.documentElement.clientWidth - P[0];   // the bar runs on to the screen's right edge
-      mg = { top, S, P, a0: Math.atan2(dy, dx), L0, R0, L1, R1, Rmid: R0 + (R1 - R0) * 0.4 };
+      const L1 = P[0] - bx0, R1 = bx0 + bw - P[0];                       // ends exactly where the project bar ends
+      mg = { top, S, P, a0: Math.atan2(dy, dx), L0, R0, L1, R1 };
     }
     const mix = (a, b, k) => a + (b - a) * k, clamp = v => Math.min(1, Math.max(0, v));
     // timeline (scroll): [0, a1] the words fade and the circles go; line + gray half stay put
@@ -198,10 +196,9 @@
       const r = clamp((s - a1) / (a2 - a1));
       const ease = v => (v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);  // sets off gently, lands gently
       const k = ease(r);
-      const q = 1 - Math.pow(1 - clamp((s - a2) / (a3 - a2)), 3);            // then the tip keeps going right with the projects
       const ang = mix(mg.a0, 0, k), c = Math.cos(ang), sn = Math.sin(ang);
       const L = mix(mg.L0, mg.L1, k);                                         // back end grows out to the bar's start
-      const R = r < 1 ? mix(mg.R0, mg.Rmid, k) : mix(mg.Rmid, mg.R1, q);      // front end only ever grows
+      const R = mix(mg.R0, mg.R1, k);                                         // front end settles on the bar's end
       const x = mg.P[0] - c * L, y = mg.P[1] - sn * L;                        // the line's back end, seen from the fixed pivot
       morph.style.display = bg.style.display = 'block';
       mLine.style.cssText = `left:${x}px;top:${y}px;width:${L + R}px;transform:rotate(${ang}rad)`;

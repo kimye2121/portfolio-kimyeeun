@@ -329,8 +329,6 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
   .proj .h1{font-size:clamp(26px,2.6vw,40px)}
   .steps{display:flex;position:relative;margin-bottom:24px;border-top:2px solid var(--line-base)}
   .steps-fill{position:absolute;left:0;top:-2px;height:2px;width:var(--fill,16.6%);background:var(--blue);transition:width .7s var(--ease)}
-  .steps::after{content:"";position:absolute;left:100%;top:-2px;height:2px;width:50vw;background:var(--line-base);transition:background-color .7s var(--ease)} /* the line runs on off-screen */
-  .steps.full::after{background:var(--blue)}
   .step{flex:1;position:relative;background:none;border:0;font:inherit;font-size:15px;font-weight:600;color:var(--ink-4);padding:22px 0 0;cursor:pointer;transition:color .4s}
   .step .node{left:50%;top:-1px;width:18px;height:18px}
   .step.on{color:var(--ink-2)}.step.current{color:var(--blue)}
