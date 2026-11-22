@@ -88,7 +88,7 @@ main,header,footer,section{position:relative}
 .hero{min-height:100vh;min-height:100svh;position:relative;overflow:hidden;display:flex;align-items:center}
 .hero::before{ /* the diagonal split from the slides */
   content:"";position:absolute;inset:0;background:var(--bg-2);
-  clip-path:polygon(0 0,59% 0,80% 100%,0 100%);
+  clip-path:polygon(0 0,var(--x0,59%) 0,var(--x1,80%) 100%,0 100%); /* --x0/--x1 set by line.js to follow the steps line */
 }
 .hero .wrap{width:100%;padding-left:40px;display:grid;grid-template-columns:1.15fr 1fr;align-items:center;min-height:100vh;min-height:100svh}
 .hero-title{font-size:clamp(34px,4.3vw,72px);line-height:1.22;font-weight:800;letter-spacing:-.045em;position:relative;z-index:2}
@@ -269,7 +269,6 @@ main,header,footer,section{position:relative}
   .top .wrap,.hero .wrap{padding-left:20px}
   .nav{gap:16px;font-size:14px}
   .nav a.hide-sm{display:none}
-  .hero::before{clip-path:polygon(0 0,100% 0,100% 52%,0 70%)}
   .hero .wrap{grid-template-columns:1fr;align-content:center;gap:24px;padding-top:96px;padding-bottom:110px}
   .hero-steps{height:300px;margin-left:12px}
   .hstep.s1{left:4%;top:8%}.hstep.s2{left:22%;top:46%}.hstep.s3{left:40%;top:84%}

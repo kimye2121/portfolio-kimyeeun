@@ -18,6 +18,8 @@
     steps.prepend(svg);
     const [main, ext] = svg.querySelectorAll('path');
     const grad = svg.querySelector('linearGradient');
+    const nodes = hs.map(h => h.querySelector('.node'));
+    const hero = steps.closest('.hero');
 
     const layout = () => {
       const p = hs.map(h => [h.offsetLeft, h.offsetTop]);
@@ -29,12 +31,17 @@
       ext.setAttribute('d', `M${b} L${e}`);
       grad.setAttribute('x1', b[0]); grad.setAttribute('y1', b[1]);
       grad.setAttribute('x2', e[0]); grad.setAttribute('y2', e[1]);
+      // gray diagonal = the same line as the steps, extended to the hero's top and bottom edges
+      const hr = hero.getBoundingClientRect();
+      const c = n => { const r = n.getBoundingClientRect(); return [r.left + r.width / 2 - hr.left, r.top + r.height / 2 - hr.top]; };
+      const A = c(nodes[0]), B = c(nodes[nodes.length - 1]), m = (B[0] - A[0]) / (B[1] - A[1]);
+      hero.style.setProperty('--x0', (A[0] - m * A[1]) + 'px');
+      hero.style.setProperty('--x1', (A[0] + m * (hr.height - A[1])) + 'px');
     };
     layout();
     addEventListener('resize', layout);
     if (document.fonts) document.fonts.ready.then(layout);
 
-    const nodes = hs.map(h => h.querySelector('.node'));
     const light = i => { nodes.forEach((n, j) => { n.classList.toggle('on', j <= i); n.classList.toggle('current', j === i); }); };
     if (reduce) { svg.classList.add('drawn'); light(2); }
     else {
