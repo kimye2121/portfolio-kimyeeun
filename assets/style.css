@@ -112,11 +112,6 @@ main,header,footer,section{position:relative}
 @keyframes rise{to{opacity:1;transform:none}}
 
 /* ============ About ============ */
-.about-grid>*{min-width:0}
-.about-grid{display:grid;grid-template-columns:minmax(260px,.75fr) 1.5fr;gap:72px;align-items:end}
-.portrait{position:relative;aspect-ratio:4/5;display:flex;align-items:flex-end}
-.portrait::before{content:"";position:absolute;inset:0;background:var(--bg-2);clip-path:polygon(0 0,58% 0,100% 100%,0 100%)}
-.portrait img{position:relative;width:100%;height:auto}
 .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:48px}
 .pillar{border-top:1px solid var(--rule);padding-top:20px}
 .pillar h3{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
@@ -192,7 +187,11 @@ main,header,footer,section{position:relative}
 .end .node{left:50%;top:50%}
 .end h2{font-size:clamp(30px,4vw,56px);font-weight:800;letter-spacing:-.04em;line-height:1.3}
 .end h2 em{font-style:normal;color:var(--blue)}
-.end p{color:var(--ink-3);margin-top:18px}
+.profile{display:flex;gap:28px;align-items:center;max-width:680px;margin:48px auto 0;text-align:left}
+.profile img{flex:none;width:128px;height:128px;border-radius:50%;background:var(--bg-2)}
+.profile p{color:var(--ink-3);font-size:16px}
+.end .profile-name{color:var(--ink);font-weight:700;font-size:19px;margin:0 0 6px}
+.profile-name span{color:var(--blue);font-weight:600;font-size:15px;margin-left:8px}
 .contact-links{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:40px}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:999px;font-weight:600;font-size:15.5px;border:1px solid var(--rule);background:#fff;transition:all .25s var(--ease)}
 .btn:hover{border-color:var(--blue);color:var(--blue)}
@@ -261,8 +260,6 @@ main,header,footer,section{position:relative}
 /* ============ Responsive ============ */
 @media (max-width:1080px){
   .cards{grid-template-columns:1fr 1fr}
-  .about-grid{grid-template-columns:minmax(0,1fr);gap:48px}
-  .portrait{max-width:360px}
   .cs-meta{grid-template-columns:1fr 1fr}
 }
 @media (max-width:760px){
@@ -280,6 +277,7 @@ main,header,footer,section{position:relative}
   .hero-contact{left:auto;right:20px;bottom:28px;font-size:13.5px;text-align:right}
   .scroll-cue{display:none}
   .sec{padding:120px 0 20px}
+  .profile{flex-direction:column;text-align:center;gap:18px}
   .facts,.facts .skills ul,.pillars,.cards,.archive,.summary,.deliverables,.figs{grid-template-columns:1fr}
   .facts li{grid-template-columns:1fr;gap:2px}
   .cs-meta{grid-template-columns:1fr}
