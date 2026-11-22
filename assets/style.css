@@ -74,6 +74,7 @@ main,header,footer,section{position:relative}
 .sec{padding:160px 0 40px}
 #about{padding-top:260px}
 #about .rail{display:none}
+#projects .sec-head > .node{visibility:hidden} /* Projects: no circle before the title */
 .sec-head{position:relative;margin-bottom:56px}
 .sec-head .node{left:calc(var(--node-x) - var(--gutter));top:15px}
 .sec-head{z-index:3}
