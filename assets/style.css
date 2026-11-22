@@ -80,7 +80,6 @@ main,header,footer,section{position:relative}
 .top.scrolled{background:rgba(252,252,253,.82);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--rule)}
 .top .wrap{display:flex;justify-content:space-between;align-items:center;width:100%;padding-left:40px}
 .brand{font-weight:800;font-size:17px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
-.brand i{width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block}
 .nav{display:flex;gap:28px;font-size:15px;color:var(--ink-3);font-weight:500}
 .nav a:hover,.nav a.active{color:var(--blue)}
 
