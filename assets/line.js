@@ -5,6 +5,10 @@
   const NS = 'http://www.w3.org/2000/svg';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // a reload always starts from the top (links with #section still jump there)
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (!location.hash) scrollTo(0, 0);
+
   /* ---------- 1. Hero: drawn once on load, then extends past Validate ---------- */
   const steps = document.querySelector('.hero-steps');
   if (steps) {
@@ -46,7 +50,7 @@
     if (reduce) { svg.classList.add('drawn'); light(2); }
     else {
       requestAnimationFrame(() => requestAnimationFrame(() => svg.classList.add('drawn')));
-      [150, 900, 1650].forEach((t, i) => setTimeout(() => light(i), t)); // matches the CSS draw timing
+      [400, 1700, 3000].forEach((t, i) => setTimeout(() => light(i), t)); // matches the CSS draw timing (.hero-line)
     }
   }
 
