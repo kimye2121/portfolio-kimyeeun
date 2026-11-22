@@ -66,6 +66,7 @@
     return { node, head, rail };
   });
   const ends = [...document.querySelectorAll('.node.lg')];
+  const endLines = [...document.querySelectorAll('.end-line')];
 
   function place() {
     rails.forEach(r => { r.rail.style.top = (r.head.offsetTop + r.node.offsetTop) + 'px'; });
@@ -83,6 +84,11 @@
       flow.push([r.node, atBottom || b.top <= anchor]);
     });
     ends.forEach(n => flow.push([n, atBottom || n.getBoundingClientRect().top <= anchor]));
+    // the last line: in from off-screen left, reaching the final circle just as it lights up
+    endLines.forEach(l => {
+      const r = l.nextElementSibling.getBoundingClientRect(), y = r.top + r.height / 2, from = innerHeight * 0.95;
+      l.style.setProperty('--p', atBottom ? 1 : Math.min(1, Math.max(0, (from - y) / (from - anchor))));
+    });
     let cur = null;
     flow.forEach(([n, hit]) => { n.classList.toggle('on', hit); if (hit) cur = n; });
     flow.forEach(([n]) => n.classList.toggle('current', n === cur));
