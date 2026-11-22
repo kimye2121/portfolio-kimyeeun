@@ -98,7 +98,7 @@
   let mg = null;   // morph geometry (section 5); null when the morph is off
   // with the morph on, the projects section pins first and spends this much scroll (in screen heights)
   // finishing the turn of the line (TURN), then sliding the projects in from the right along it (SLIDE)
-  const TURN = 1.8, SLIDE = 1.0;   // keep in step with .has-morph .proj height in style.css
+  const TURN = 1.5, SLIDE = 1.0;   // keep in step with .has-morph .proj height in style.css
   const intro = () => (mg ? innerHeight * (TURN + SLIDE) : 0);
   /* ---------- 3. Projects content comes in ---------- */
   const heroEl = document.querySelector('.hero'), mainEl = document.querySelector('main');
