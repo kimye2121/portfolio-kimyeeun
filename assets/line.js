@@ -128,7 +128,7 @@
     active = i;
     cards.forEach((c, k) => c.classList.toggle('active', k === i));
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
-    proj.querySelector('.steps').style.setProperty('--fill', (Math.max(0, i) + 0.5) / cards.length * 100 + '%');  // before arrival: waiting at 01
+
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
   const stepStart = () => proj.offsetTop + mainEl.offsetTop + intro();          // stepping begins after the intro
@@ -172,13 +172,12 @@
   if (hstepEls.length === 3 && bar && !reduce) {
     morph = document.createElement('div');
     morph.className = 'morph'; morph.setAttribute('aria-hidden', 'true');
-    morph.innerHTML = '<div class="m-line"><i></i><b></b></div><span class="node"></span><span class="node"></span><span class="node"></span>';
+    morph.innerHTML = '<div class="m-line"></div><span class="node"></span><span class="node"></span><span class="node"></span>';
     const bg = document.createElement('div');                              // the hero's gray half, turning with the line
     bg.className = 'm-bg'; bg.setAttribute('aria-hidden', 'true'); bg.innerHTML = '<i></i>';
     document.body.append(bg, morph);
     document.documentElement.classList.add('has-morph');
-    const mLine = morph.firstChild, mFill = mLine.firstChild, mExtra = mLine.lastChild, mNodes = [...morph.querySelectorAll('.node')], bgHalf = bg.firstChild;
-    const btns = [...bar.querySelectorAll('.step')];
+    const mLine = morph.firstChild, mNodes = [...morph.querySelectorAll('.node')], bgHalf = bg.firstChild;
     function morphLayout() {
       if (!pinned.matches) { mg = null; return; }
       const sw = steps.offsetParent, wrap = bar.offsetParent;
@@ -191,8 +190,7 @@
       const sgn = by >= S[0][1] ? 1 : -1;
       const L0 = sgn * Math.hypot(P[0] - S[0][0], P[1] - S[0][1]), R0 = Math.hypot(S[2][0] - P[0], S[2][1] - P[1]);
       const L1 = P[0] - bx0, R1 = bx0 + bw - P[0];                       // ends exactly where the project bar ends
-      const n1 = wrap.offsetLeft + bar.offsetLeft + btns[0].offsetLeft + btns[0].offsetWidth / 2 - P[0];   // project 01's node, along the line from the pivot
-      mg = { top, S, P, a0: Math.atan2(dy, dx), L0, R0, L1, R1, n1 };
+      mg = { top, S, P, a0: Math.atan2(dy, dx), L0, R0, L1, R1 };
     }
     const mix = (a, b, k) => a + (b - a) * k, clamp = v => Math.min(1, Math.max(0, v));
     // timeline (scroll): [0, a1] the words fade and the circles go; line + gray half stay put
@@ -216,9 +214,6 @@
       const x = mg.P[0] - c * L, y = mg.P[1] - sn * L;                        // the line's back end, seen from the fixed pivot
       morph.style.display = bg.style.display = 'block';
       mLine.style.cssText = `left:${x}px;top:${y}px;width:${L + R}px;transform:rotate(${ang}rad)`;
-      // blue stays up to where project 01's node will land; the rest of the old blue line turns into the plain bar
-      mFill.style.width = clamp((L + mg.n1) / (L + R)) * 100 + '%';
-      mExtra.style.opacity = clamp(1 - (k - .55) / .45);
       bgHalf.style.cssText = `left:${mg.P[0]}px;top:${mg.P[1]}px;transform:rotate(${ang}rad) translateX(-3000px)`;   // stays: it becomes the gray under the project bar
       const nodeA = clamp(1 - s / (a1 * 0.5));                               // the circles go first; only the line carries on
       mNodes.forEach((n, i) => {
