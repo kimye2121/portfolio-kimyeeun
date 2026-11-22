@@ -16,7 +16,7 @@
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'hero-line');
     svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = '<path class="main" pathLength="1"/><path class="conn" pathLength="1"/>';
+    svg.innerHTML = '<path class="main" pathLength="1"/>';
     steps.prepend(svg);
     const main = svg.querySelector('.main');
     const nodes = hs.map(h => h.querySelector('.node'));
@@ -141,50 +141,55 @@
     if (Math.abs(dy) > 30) { step(Math.sign(dy), e); if (e.defaultPrevented) ty = null; }
   }, { passive: false });
 
-  /* ---------- 5. Connector: on scroll, Validate → across to the rail → down into Projects → onto the project line ---------- */
-  const heroConn = document.querySelector('.hero-line .conn');
-  const pNode = proj && proj.querySelector('.sec-head > .node');
-  let pConn = null, geo = null;
-  if (heroConn && pNode) {
-    const wrap = pNode.parentElement.parentElement;
-    pConn = document.createElementNS(NS, 'svg');
-    pConn.setAttribute('class', 'conn'); pConn.setAttribute('aria-hidden', 'true');
-    pConn.innerHTML = '<path pathLength="1"/>';
-    wrap.prepend(pConn);
-    const stepsBar = proj.querySelector('.steps');
-    function connLayout() {
-      const head = pNode.parentElement;
-      const nx = head.offsetLeft + pNode.offsetLeft, ny = head.offsetTop + pNode.offsetTop;  // node centre in the wrap
-      const y0 = -parseFloat(getComputedStyle(proj).paddingTop);                            // section top in the wrap
-      let d = `M${nx},${y0} L${nx},${ny}`, yEnd = ny;
-      if (pinned.matches && stepsBar.offsetParent) {                                        // pinned: carry on to the project line
-        const sy = stepsBar.offsetTop + 1; yEnd = sy;
-        d += ` L${nx},${sy} L${stepsBar.offsetLeft},${sy}`;
-      }
-      pConn.firstChild.setAttribute('d', d);
-      // hero part, in the hero svg's coordinates (the svg sits at the steps box)
-      const ox = steps.offsetParent.offsetLeft + steps.offsetLeft, oy = steps.offsetParent.offsetTop + steps.offsetTop;
-      const last = steps.querySelector('.hstep:last-child'), vx = last.offsetLeft, vy = last.offsetTop;
-      const rx = wrap.offsetLeft + nx - ox, bottom = heroEl.offsetHeight - oy;
-      heroConn.setAttribute('d', `M${vx},${vy} L${rx},${vy} L${rx},${bottom}`);
-      geo = { secTop: () => proj.offsetTop + mainEl.offsetTop, y0, yEnd };
+  /* ---------- 5. Morph: the hero's Why–Decide–Validate line turns, straightens and stretches
+     into the project line as you scroll; its three nodes become the three projects ---------- */
+  const hstepEls = [...document.querySelectorAll('.hstep')];
+  const bar = proj && proj.querySelector('.steps');
+  let morph = null, mg = null;
+  if (hstepEls.length === 3 && bar && !reduce) {
+    morph = document.createElement('div');
+    morph.className = 'morph'; morph.setAttribute('aria-hidden', 'true');
+    morph.innerHTML = '<div class="m-line"><i></i></div><span class="node"></span><span class="node"></span><span class="node"></span>';
+    document.body.append(morph);
+    const mLine = morph.firstChild, mFill = mLine.firstChild, mNodes = [...morph.querySelectorAll('.node')];
+    const btns = [...bar.querySelectorAll('.step')];
+    function morphLayout() {
+      if (!pinned.matches) { mg = null; return; }
+      const sw = steps.offsetParent, wrap = bar.offsetParent;
+      const S = hstepEls.map(h => [sw.offsetLeft + steps.offsetLeft + h.offsetLeft, sw.offsetTop + steps.offsetTop + h.offsetTop]);
+      const top = proj.offsetTop + mainEl.offsetTop, by = wrap.offsetTop + bar.offsetTop + 1;  // bar's y at the moment it pins
+      const bx0 = wrap.offsetLeft + bar.offsetLeft, bw = bar.offsetWidth;
+      mg = { S, top, start: { x: S[0][0], y: S[0][1], ang: Math.atan2(S[2][1] - S[0][1], S[2][0] - S[0][0]), len: Math.hypot(S[2][0] - S[0][0], S[2][1] - S[0][1]) },
+             end: { x: bx0, y: by, ang: 0, len: bw }, f0: [0, .5, 1], f1: btns.map(b => (b.offsetLeft + b.offsetWidth / 2) / bw) };
     }
-    function connUpdate() {
-      if (!geo) return;
-      const vh = innerHeight, h = heroEl.offsetHeight;
-      const a = Math.min(1, Math.max(0, scrollY / Math.max(1, h - vh * 0.5)));               // done when the hero bottom reaches mid-screen
-      const top = geo.secTop();                                                              // section top = path start
-      const b = Math.min(1, Math.max(0, (scrollY + vh * 0.5 - top) / Math.max(1, geo.yEnd - geo.y0)));
-      heroConn.style.strokeDashoffset = 1 - a;
-      pConn.firstChild.style.strokeDashoffset = 1 - b;
+    const mix = (a, b, k) => a + (b - a) * k;
+    function morphUpdate() {
+      const on = mg && scrollY > 0 && scrollY < mg.top;
+      document.documentElement.classList.toggle('morphing', !!on);
+      if (!on) { morph.style.display = 'none'; heroEl.style.setProperty('--hlbl', scrollY > 0 && mg ? 0 : 1); return; }
+      const r = scrollY / mg.top, k = r * r * (3 - 2 * r);                 // smoothstep
+      // the start point rides up with the hero a little, then settles where the bar will pin
+      const x = mix(mg.start.x, mg.end.x, k), y = mix(mg.start.y - scrollY * (1 - k), mg.end.y, k);
+      const ang = mix(mg.start.ang, mg.end.ang, k), len = mix(mg.start.len, mg.end.len, k);
+      const fs = mg.f0.map((f, i) => mix(f, mg.f1[i], k));
+      morph.style.display = 'block';
+      mLine.style.cssText = `left:${x}px;top:${y}px;width:${len}px;transform:rotate(${ang}rad)`;
+      mFill.style.width = mix(100, mg.f1[0] * 100, k) + '%';                // blue: whole hero line → up to project 01
+      const c = Math.cos(ang), s = Math.sin(ang), size = mix(28, 18, k);
+      mNodes.forEach((n, i) => {
+        n.style.cssText = `left:${x + c * len * fs[i]}px;top:${y + s * len * fs[i]}px;width:${size}px;height:${size}px`;
+        const cur = k < .5 ? i === 2 : i === 0;                            // Validate is current → then project 01
+        n.classList.toggle('current', cur); n.classList.toggle('on', k < .5 || i === 0);
+      });
+      heroEl.style.setProperty('--hlbl', Math.max(0, 1 - r * 5));          // Why/Decide/Validate labels fade quickly
     }
-    connLayout();
-    addEventListener('resize', connLayout);
-    addEventListener('load', connLayout);
-    if (document.fonts) document.fonts.ready.then(connLayout);
+    morphLayout();
+    addEventListener('resize', morphLayout);
+    addEventListener('load', morphLayout);
+    if (document.fonts) document.fonts.ready.then(morphLayout);
   }
 
-  const frame = () => { lift(); projUpdate(); if (pConn) connUpdate(); };
+  const frame = () => { lift(); projUpdate(); if (morph) morphUpdate(); };
   addEventListener('scroll', frame, { passive: true });
   addEventListener('resize', () => { active = -1; frame(); });
   frame();
