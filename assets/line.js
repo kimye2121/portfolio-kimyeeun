@@ -35,6 +35,8 @@
       ext.setAttribute('d', `M${b} L${e}`);
       grad.setAttribute('x1', b[0]); grad.setAttribute('y1', b[1]);
       grad.setAttribute('x2', e[0]); grad.setAttribute('y2', e[1]);
+      // continue at the same speed as the main line (2.6s, see .hero-line .main) so it never speeds up
+      ext.style.transitionDuration = (2.6 * len / main.getTotalLength()) + 's';
       // gray diagonal = the same line as the steps, extended to the hero's top and bottom edges
       // offsets, not rects: unaffected by the cover scale while scrolled
       const ox = steps.offsetParent.offsetLeft + steps.offsetLeft, oy = steps.offsetParent.offsetTop + steps.offsetTop;

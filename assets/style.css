@@ -38,7 +38,7 @@ a{color:inherit;text-decoration:none}
 .hero-line{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .hero-line path{fill:none;stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
 .hero-line .main{stroke:var(--blue);transition:stroke-dashoffset 2.6s linear .4s}
-.hero-line .ext{transition:stroke-dashoffset 1.2s var(--ease) 3s}
+.hero-line .ext{transition:stroke-dashoffset 1.2s linear 3s}
 .hero-line.drawn path{stroke-dashoffset:0}
 /* sections: a rail in the empty gutter that fills as you scroll and fades at the end */
 .rail{position:absolute;left:var(--node-x);bottom:0;width:2px;margin-left:-1px;background:var(--line-base);pointer-events:none;
