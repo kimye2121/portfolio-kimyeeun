@@ -98,7 +98,7 @@
   let mg = null;   // morph geometry (section 5); null when the morph is off
   // with the morph on, the projects section pins first and spends this much scroll (in screen heights)
   // finishing the turn of the line (TURN), then sliding the projects in from the right along it (SLIDE)
-  const TURN = 1.0, SLIDE = 0.7;
+  const TURN = 1.8, SLIDE = 1.0;   // keep in step with .has-morph .proj height in style.css
   const intro = () => (mg ? innerHeight * (TURN + SLIDE) : 0);
   /* ---------- 3. Projects content comes in ---------- */
   const heroEl = document.querySelector('.hero'), mainEl = document.querySelector('main');
@@ -185,6 +185,7 @@
       const S = hstepEls.map(h => [sw.offsetLeft + steps.offsetLeft + h.offsetLeft, sw.offsetTop + steps.offsetTop + h.offsetTop]);
       const top = proj.offsetTop + mainEl.offsetTop, by = bar.offsetTop + 1;  // bar's y on screen while pinned (the pinned box sits at the top)
       const bx0 = wrap.offsetLeft + bar.offsetLeft, bw = bar.offsetWidth;
+      bar.style.setProperty('--below', (innerHeight - by) + 'px');            // gray under the bar fills the pinned screen, no further
       // pivot = where the hero line crosses the project bar's line: it never moves, the line turns on it and grows
       const dx = S[2][0] - S[0][0], dy = S[2][1] - S[0][1], P = [S[0][0] + (by - S[0][1]) * dx / dy, by];
       const sgn = by >= S[0][1] ? 1 : -1;
@@ -198,7 +199,7 @@
     // · [a2, a3] the projects slide in from the right along the line · then the first one opens
     function morphUpdate() {
       const H = heroEl.offsetHeight, s = scrollY;
-      const a1 = H * 0.6, a2 = mg ? mg.top + innerHeight * TURN : 0, a3 = a2 + innerHeight * SLIDE;
+      const a1 = H * 0.8, a2 = mg ? mg.top + innerHeight * TURN : 0, a3 = a2 + innerHeight * SLIDE;
       const on = mg && s > 0 && s < a3;
       document.documentElement.classList.toggle('morphing', !!on);
       heroEl.style.setProperty('--hfade', mg ? clamp(1 - s / a1) : 1);
@@ -215,7 +216,7 @@
       morph.style.display = bg.style.display = 'block';
       mLine.style.cssText = `left:${x}px;top:${y}px;width:${L + R}px;transform:rotate(${ang}rad)`;
       mFill.style.width = '100%';
-      bgHalf.style.cssText = `left:${mg.P[0]}px;top:${mg.P[1]}px;transform:rotate(${ang}rad) translateX(-3000px);opacity:${clamp(1 - (k - .45) / .45)}`;
+      bgHalf.style.cssText = `left:${mg.P[0]}px;top:${mg.P[1]}px;transform:rotate(${ang}rad) translateX(-3000px)`;   // stays: it becomes the gray under the project bar
       const nodeA = clamp(1 - s / (a1 * 0.5));                               // the circles go first; only the line carries on
       mNodes.forEach((n, i) => {
         n.style.cssText = `left:${mg.S[i][0]}px;top:${mg.S[i][1]}px;opacity:${nodeA};display:${nodeA ? 'block' : 'none'}`;

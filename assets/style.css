@@ -321,7 +321,9 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
 .steps{display:none}
 @media (min-width:900px) and (min-height:640px){
   .proj{height:300vh;padding:0}
-  .has-morph .proj{height:470vh} /* + intro: line finishes turning (100vh), projects slide in (70vh) */
+  .has-morph .proj{height:580vh} /* + intro: line finishes turning (180vh), projects slide in (100vh) — see TURN/SLIDE in line.js */
+  .has-morph .steps::after{content:"";position:absolute;left:-100vw;right:-100vw;top:-1px;height:var(--below,100vh);background:var(--bg-2);z-index:-1} /* the hero's gray, turned, now under the bar */
+  .morphing .steps::after{visibility:hidden}
   .has-morph #projects .sec-head,.has-morph #projects .steps,.has-morph #projects .cards{transform:translateX(calc((1 - var(--slide,1))*100vw))}
   .proj-pin{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:flex-start;padding-top:calc(64px + 5vh)} /* top-anchored: opening a card must not shift the heading */
   .proj .rail{display:none}
