@@ -142,20 +142,42 @@
   const goTo = k => { busyUntil = performance.now() + 750; setActive(k); scrollTo({ top: stepTop(k), behavior: reduce ? 'auto' : 'smooth' }); };
   projSteps.forEach((s, k) => s.addEventListener('click', () => goTo(k)));
   let lastInput = 0, held = false;
+  // from the cover, one gesture (or a click) winds the whole turn by itself, quickly, to the first project;
+  // one gesture back up from the first project winds back to the cover
+  let glideUntil = 0;
+  function glide(to, dur = 1600) {
+    const html = document.documentElement, from = scrollY, t0 = performance.now();
+    if (reduce) dur = 0;
+    glideUntil = t0 + dur + 150;
+    html.style.scrollBehavior = 'auto';
+    const ease = v => (v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);
+    const tick = now => {
+      const v = dur ? Math.min(1, (now - t0) / dur) : 1;
+      scrollTo(0, from + (to - from) * ease(v));
+      if (v < 1) requestAnimationFrame(tick); else html.style.scrollBehavior = '';
+    };
+    requestAnimationFrame(tick);
+  }
+  if (heroEl) heroEl.addEventListener('click', e => { if (mg && !e.target.closest('a')) glide(stepTop(0)); });
+
   function step(dir, e) {
     if (!proj || !pinned.matches) return;
-    const y = scrollY;
-    if (y < stepStart() - 2 || y > stepStart() + stepSpan() + 2) return; // not in the stepping range (intro scrolls freely)
+    const y = scrollY, intro = mg && y < stepStart() - 2;
+    if (!intro && (y < stepStart() - 2 || y > stepStart() + stepSpan() + 2)) return; // outside: scroll freely
+    if (intro && dir < 0 && y <= 1) return;               // already at the very top
     const now = performance.now(), quiet = now - lastInput > 220;
     lastInput = now;
     if (quiet) held = false;                              // a pause between gestures frees the next step
-    if (held || now < busyUntil) { e.preventDefault(); return; } // same gesture (trackpad momentum, key repeat): swallow
+    if (held || now < busyUntil || now < glideUntil) { e.preventDefault(); return; } // same gesture / still moving: swallow
+    if (intro) { e.preventDefault(); held = true; glide(dir > 0 ? stepTop(0) : 0); return; }
     const next = active + dir;
-    if (next < 0 || next >= stops()) return;             // first project / overview: a new gesture scrolls on
+    if (next < 0 && mg) { e.preventDefault(); held = true; glide(0); return; }   // back up to the cover
+    if (next < 0 || next >= stops()) return;             // overview: a new gesture scrolls on
     e.preventDefault();
     held = true;
     goTo(next);
   }
+
   addEventListener('wheel', e => { if (Math.abs(e.deltaY) > 2) step(Math.sign(e.deltaY), e); }, { passive: false });
   addEventListener('keydown', e => {
     const d = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 }[e.key];
@@ -231,7 +253,7 @@
   }
 
   // "Projects" links land on the projects view itself (heading + first project), not on the empty turning stage
-  const toProjects = smooth => { if (mg) scrollTo({ top: stepTop(0), behavior: smooth && !reduce ? 'smooth' : 'auto' }); };
+  const toProjects = smooth => { if (!mg) return; if (smooth) glide(stepTop(0)); else scrollTo({ top: stepTop(0), behavior: 'auto' }); };
   document.querySelectorAll('a[href="#projects"]').forEach(a => a.addEventListener('click', e => { if (mg) { e.preventDefault(); toProjects(true); history.replaceState(null, '', '#projects'); } }));
   if (location.hash === '#projects') addEventListener('load', () => toProjects(false));
 
