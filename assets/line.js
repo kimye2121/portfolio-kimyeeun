@@ -89,13 +89,44 @@
   if (document.fonts) document.fonts.ready.then(place);
   place();
 
+  /* ---------- 3. Cover: hero lifts away, the page underneath holds still ---------- */
+  const heroEl = document.querySelector('.hero'), mainEl = document.querySelector('main');
+  const lift = () => { if (heroEl) mainEl.style.setProperty('--lift', -Math.max(0, heroEl.offsetHeight - scrollY) + 'px'); };
+
+  /* ---------- 4. Projects: a horizontal line; scrolling moves it and opens one project at a time ---------- */
+  const proj = document.querySelector('.proj');
+  const projSteps = proj ? [...proj.querySelectorAll('.step')] : [];
+  const cards = proj ? [...proj.querySelectorAll('.card')] : [];
+  const pinned = matchMedia('(min-width:900px) and (min-height:640px)');
+  let active = -1;
+  function projUpdate() {
+    if (!proj) return;
+    if (!pinned.matches) { cards.forEach(c => c.classList.remove('active')); active = -1; return; }
+    const r = proj.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+    const i = Math.min(cards.length - 1, Math.floor(p * cards.length));
+    if (i === active) return;
+    active = i;
+    cards.forEach((c, k) => c.classList.toggle('active', k === i));
+    projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
+    proj.querySelector('.steps').style.setProperty('--fill', ((i + 0.5) / cards.length * 100) + '%');
+  }
+  projSteps.forEach((s, k) => s.addEventListener('click', () => {
+    const top = proj.getBoundingClientRect().top + scrollY;
+    scrollTo({ top: top + (k + 0.5) / cards.length * (proj.offsetHeight - innerHeight), behavior: reduce ? 'auto' : 'smooth' });
+  }));
+
+  const frame = () => { lift(); projUpdate(); };
+  addEventListener('scroll', frame, { passive: true });
+  addEventListener('resize', () => { active = -1; frame(); });
+  frame();
+
   /* ---------- header state + nav highlight + reveal ---------- */
   const top = document.querySelector('.top');
   const navLinks = [...document.querySelectorAll('.nav a[href^="#"]')];
   const secs = navLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
   addEventListener('scroll', () => {
     top && top.classList.toggle('scrolled', scrollY > 24);
-    if (steps) steps.closest('.hero').style.setProperty('--cover', Math.min(1, scrollY / innerHeight));
     const y = scrollY + innerHeight * 0.4;
     let act = null; secs.forEach(s => { if (s.offsetTop <= y) act = s.id; });
     navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + act));
