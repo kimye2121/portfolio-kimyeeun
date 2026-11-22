@@ -73,6 +73,7 @@ main,header,footer,section{position:relative}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 40px 0 var(--gutter);position:relative}
 .sec{padding:160px 0 40px}
 #about{padding-top:260px}
+#about .rail{display:none}
 .sec-head{position:relative;margin-bottom:56px}
 .sec-head .node{left:calc(var(--node-x) - var(--gutter));top:15px}
 .sec-head{z-index:3}
