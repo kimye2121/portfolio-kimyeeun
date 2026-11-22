@@ -116,7 +116,9 @@
     active = i;
     cards.forEach((c, k) => c.classList.toggle('active', k === i));
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
-    proj.querySelector('.steps').style.setProperty('--fill', i < 0 ? '100%' : ((i + 0.5) / cards.length * 100) + '%');
+    const sb = proj.querySelector('.steps');
+    sb.style.setProperty('--fill', i < 0 ? '100%' : ((i + 0.5) / cards.length * 100) + '%');
+    sb.classList.toggle('full', i < 0);
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
   const stepStart = () => proj.offsetTop + mainEl.offsetTop + intro();          // stepping begins after the intro
@@ -173,8 +175,12 @@
       const S = hstepEls.map(h => [sw.offsetLeft + steps.offsetLeft + h.offsetLeft, sw.offsetTop + steps.offsetTop + h.offsetTop]);
       const top = proj.offsetTop + mainEl.offsetTop, by = bar.offsetTop + 1;  // bar's y on screen while pinned (the pinned box sits at the top)
       const bx0 = wrap.offsetLeft + bar.offsetLeft, bw = bar.offsetWidth;
-      mg = { top, start: { x: S[0][0], y: S[0][1], ang: Math.atan2(S[2][1] - S[0][1], S[2][0] - S[0][0]), len: Math.hypot(S[2][0] - S[0][0], S[2][1] - S[0][1]) },
-             end: { x: bx0, y: by, ang: 0, len: bw }, f0: [0, .5, 1] };
+      // pivot = where the hero line crosses the project bar's line: it never moves, the line turns on it and grows
+      const dx = S[2][0] - S[0][0], dy = S[2][1] - S[0][1], P = [S[0][0] + (by - S[0][1]) * dx / dy, by];
+      const sgn = by >= S[0][1] ? 1 : -1;
+      const L0 = sgn * Math.hypot(P[0] - S[0][0], P[1] - S[0][1]), R0 = Math.hypot(S[2][0] - P[0], S[2][1] - P[1]);
+      const L1 = P[0] - bx0, R1 = document.documentElement.clientWidth - P[0];   // the bar runs on to the screen's right edge
+      mg = { top, S, P, a0: Math.atan2(dy, dx), L0, R0, L1, R1, Rmid: R0 + (R1 - R0) * 0.4 };
     }
     const mix = (a, b, k) => a + (b - a) * k, clamp = v => Math.min(1, Math.max(0, v));
     // timeline (scroll): [0, a1] the words fade and the circles go; line + gray half stay put
@@ -191,20 +197,19 @@
       if (!on) { morph.style.display = bg.style.display = 'none'; return; }
       const r = clamp((s - a1) / (a2 - a1));
       const ease = v => (v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);  // sets off gently, lands gently
-      const k = ease(r), kEnd = ease(clamp(r * 1.35));                       // the left end settles first…
-      const q = 1 - Math.pow(1 - clamp((s - a2) / (a3 - a2)), 3);            // …then the tip keeps going right with the projects
-      const x = mix(mg.start.x, mg.end.x, kEnd), y = mix(mg.start.y, mg.end.y, kEnd);
-      const ang = mix(mg.start.ang, mg.end.ang, k);
-      const len = r < 1 ? mix(mg.start.len, mg.end.len * 0.55, k) : mix(mg.end.len * 0.55, mg.end.len, q);
+      const k = ease(r);
+      const q = 1 - Math.pow(1 - clamp((s - a2) / (a3 - a2)), 3);            // then the tip keeps going right with the projects
+      const ang = mix(mg.a0, 0, k), c = Math.cos(ang), sn = Math.sin(ang);
+      const L = mix(mg.L0, mg.L1, k);                                         // back end grows out to the bar's start
+      const R = r < 1 ? mix(mg.R0, mg.Rmid, k) : mix(mg.Rmid, mg.R1, q);      // front end only ever grows
+      const x = mg.P[0] - c * L, y = mg.P[1] - sn * L;                        // the line's back end, seen from the fixed pivot
       morph.style.display = bg.style.display = 'block';
-      mLine.style.cssText = `left:${x}px;top:${y}px;width:${len}px;transform:rotate(${ang}rad)`;
-      mFill.style.width = '100%';                                            // one blue line, only ever growing at its tip
-      bgHalf.style.cssText = `left:${x}px;top:${y}px;transform:rotate(${ang}rad) translateX(-3000px);opacity:${clamp(1 - (k - .45) / .45)}`;
+      mLine.style.cssText = `left:${x}px;top:${y}px;width:${L + R}px;transform:rotate(${ang}rad)`;
+      mFill.style.width = '100%';
+      bgHalf.style.cssText = `left:${mg.P[0]}px;top:${mg.P[1]}px;transform:rotate(${ang}rad) translateX(-3000px);opacity:${clamp(1 - (k - .45) / .45)}`;
       const nodeA = clamp(1 - s / (a1 * 0.5));                               // the circles go first; only the line carries on
-      const c = Math.cos(ang), sn = Math.sin(ang);
       mNodes.forEach((n, i) => {
-        const f = mg.f0[i];
-        n.style.cssText = `left:${x + c * len * f}px;top:${y + sn * len * f}px;opacity:${nodeA};display:${nodeA ? 'block' : 'none'}`;
+        n.style.cssText = `left:${mg.S[i][0]}px;top:${mg.S[i][1]}px;opacity:${nodeA};display:${nodeA ? 'block' : 'none'}`;
         n.classList.toggle('current', i === 2); n.classList.toggle('on', true);
       });
     }
