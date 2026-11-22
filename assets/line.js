@@ -121,21 +121,24 @@
     if (performance.now() < busyUntil) return;           // a step is animating; it already chose the card
     if (mg && scrollY < stepStart() - 2) { setActive(-1); return; }   // still arriving: nothing open yet
     const p = Math.min(1, Math.max(0, (scrollY - stepStart()) / stepSpan()));
-    setActive(Math.min(cards.length - 1, Math.floor(p * cards.length)));
+    setActive(Math.min(stops() - 1, Math.floor(p * stops())));
   }
   function setActive(i) {
     if (i === active) return;
     active = i;
-    const shown = Math.max(0, i);                         // before arrival the first project is already in view, still closed
-    cards.forEach((c, k) => { c.classList.toggle('active', k === i); c.classList.toggle('shown', k === shown); c.classList.toggle('past', k < shown); });
-    proj.querySelector('.steps').style.setProperty('--fill', (shown + 0.5) / cards.length * 100 + '%');   // blue runs up to the current circle
-    projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
+    const all = i === cards.length;                      // last stop: the line runs off to the right, all projects side by side
+    const shown = all ? -1 : Math.max(0, i);              // before arrival the first project is already in view, still closed
+    cards[0].parentElement.classList.toggle('overview', all);
+    cards.forEach((c, k) => { c.classList.toggle('active', k === i); c.classList.toggle('shown', k === shown); c.classList.toggle('past', !all && k < shown); });
+    proj.querySelector('.steps').style.setProperty('--fill', all ? 'calc(100% + 50vw)' : (shown + 0.5) / cards.length * 100 + '%');   // blue up to the current circle
+    projSteps.forEach((s, k) => { const on = all || k <= i, cur = all || k === i; s.classList.toggle('on', on); s.classList.toggle('current', cur); s.firstChild.classList.toggle('on', on); s.firstChild.classList.toggle('current', cur); });
 
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
   const stepStart = () => proj.offsetTop + mainEl.offsetTop + intro();          // stepping begins after the intro
   const stepSpan = () => proj.offsetHeight - innerHeight - intro();
-  const stepTop = k => stepStart() + (k + 0.5) / cards.length * stepSpan();
+  const stops = () => cards.length + 1;                                         // three projects + the overview
+  const stepTop = k => stepStart() + (k + 0.5) / stops() * stepSpan();
   const goTo = k => { busyUntil = performance.now() + 750; setActive(k); scrollTo({ top: stepTop(k), behavior: reduce ? 'auto' : 'smooth' }); };
   projSteps.forEach((s, k) => s.addEventListener('click', () => goTo(k)));
   let lastInput = 0, held = false;
@@ -148,7 +151,7 @@
     if (quiet) held = false;                              // a pause between gestures frees the next step
     if (held || now < busyUntil) { e.preventDefault(); return; } // same gesture (trackpad momentum, key repeat): swallow
     const next = active + dir;
-    if (next < 0 || next >= cards.length) return;        // first/last project: a new gesture scrolls on
+    if (next < 0 || next >= stops()) return;             // first project / overview: a new gesture scrolls on
     e.preventDefault();
     held = true;
     goTo(next);

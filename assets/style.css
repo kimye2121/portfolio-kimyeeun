@@ -323,8 +323,8 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
 /* ============ Projects: horizontal line, one project opened at a time ============ */
 .steps{display:none}
 @media (min-width:900px) and (min-height:640px){
-  .proj{height:300vh;padding:0}
-  .has-morph .proj{height:580vh} /* + intro: line finishes turning (180vh), projects slide in (100vh) — see TURN/SLIDE in line.js */
+  .proj{height:367vh;padding:0} /* 3 projects + overview */
+  .has-morph .proj{height:647vh} /* + intro: line finishes turning (180vh), projects slide in (100vh) — see TURN/SLIDE in line.js */
   .has-morph .steps::after{content:"";position:absolute;left:-100vw;right:-100vw;top:-1px;height:var(--below,100vh);background:var(--bg-2);z-index:-1} /* the hero's gray, turned, now under the bar */
   .morphing .steps::after{visibility:hidden}
   .has-morph #projects .sec-head,.has-morph #projects .steps,.has-morph #projects .cards{transform:translateX(calc((1 - var(--slide,1))*100vw))}
@@ -348,6 +348,17 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
   .proj .card .body{padding:clamp(24px,3vw,44px)}
   .proj .card h3{font-size:clamp(26px,2.2vw,34px)}
   .proj .br-pc{display:none}
+  /* overview: after the last project the line runs on and all three sit side by side */
+  #projects .cards.overview{grid-template-columns:repeat(3,1fr);gap:24px}
+  #projects .cards.overview .card{grid-area:auto;display:flex;flex-direction:column;opacity:1;transform:none;pointer-events:auto;animation:ov-in .7s var(--ease) both}
+  #projects .cards.overview .card:nth-child(2){animation-delay:.08s}
+  #projects .cards.overview .card:nth-child(3){animation-delay:.16s}
+  #projects .cards.overview .card .thumb{margin:0;border-radius:0;align-self:auto}
+  #projects .cards.overview .card .detail{grid-template-rows:1fr;opacity:1}
+  #projects .cards.overview .card :is(.role,.award,.mini){display:none}
+  #projects .cards.overview .card .body{padding:22px 26px 26px}
+  #projects .cards.overview .card h3{font-size:24px}
+  @keyframes ov-in{from{opacity:0;transform:translateY(28px)}}
   .proj .detail{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .7s var(--ease),opacity .5s}
   .proj .detail>div{overflow:hidden;min-height:0}
   .proj .card.active .detail{grid-template-rows:1fr;opacity:1}
