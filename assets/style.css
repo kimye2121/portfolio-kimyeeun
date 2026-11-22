@@ -114,7 +114,7 @@ main,header,footer,section{position:relative}
 /* ============ About ============ */
 .about-grid>*{min-width:0}
 .about-grid{display:grid;grid-template-columns:minmax(260px,.8fr) 1.5fr;gap:72px;align-items:start}
-.portrait{position:sticky;top:110px;aspect-ratio:4/5;display:flex;align-items:flex-end}
+.portrait{position:relative;aspect-ratio:4/5;display:flex;align-items:flex-end}
 .portrait::before{content:"";position:absolute;inset:0;background:var(--bg-2);clip-path:polygon(0 0,58% 0,100% 100%,0 100%)}
 .portrait img{position:relative;width:100%;height:auto}
 .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:48px}
@@ -258,7 +258,7 @@ main,header,footer,section{position:relative}
 @media (max-width:1080px){
   .cards{grid-template-columns:1fr 1fr}
   .about-grid{grid-template-columns:minmax(0,1fr);gap:48px}
-  .portrait{position:relative;top:0;max-width:360px}
+  .portrait{max-width:360px}
   .cs-meta{grid-template-columns:1fr 1fr}
 }
 @media (max-width:760px){
