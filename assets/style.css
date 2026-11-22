@@ -267,7 +267,7 @@ main{overflow-x:clip}
   border:1.5px dashed #C9D5F7;display:flex;align-items:center;justify-content:center;text-align:center;
   color:var(--ink-4);font-size:14px;padding:20px;
 }
-.ph-img::before{content:"IMAGE · ";font-weight:700;color:var(--blue-300);margin-right:4px}
+.ph-img::before{content:"이미지 준비 중 · ";font-weight:700;color:var(--blue-300);margin-right:4px}
 .figs.one .ph-img{aspect-ratio:21/9}
 .stat-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:40px}
 .stat{background:#fff;border-radius:18px;padding:26px 28px;min-width:200px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.04)}
@@ -276,8 +276,12 @@ main{overflow-x:clip}
 .deliverables{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:32px;list-style:none}
 .deliverables li{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:16px 18px;font-weight:600;font-size:15.5px}
 .deliverables li small{display:block;color:var(--ink-4);font-weight:500;font-size:13px}
-.todo{margin-top:28px;max-width:760px;border-left:3px solid #FFB020;background:#FFF8EA;border-radius:0 12px 12px 0;padding:14px 18px;font-size:14.5px;color:#7A5300}
-.todo b{font-weight:700}
+/* placeholder for text that is still to come: says what will go here, shows skeleton lines, invents nothing */
+.dummy{margin-top:28px;max-width:760px;padding:20px 22px;border:1.5px dashed #C9D5F7;border-radius:16px;background:var(--bg)}
+.dummy-tag{display:inline-block;font-size:12.5px;font-weight:700;color:var(--blue);background:var(--blue-100);padding:3px 10px;border-radius:999px}
+.dummy p{margin-top:10px;color:var(--ink-3);font-size:14.5px}
+.dummy i{display:block;height:10px;margin-top:12px;border-radius:6px;background:var(--bg-2)}
+.dummy i:nth-of-type(2){width:86%}.dummy i:nth-of-type(3){width:62%}
 .next{display:block;padding:200px 0 120px;text-align:center}
 .next .node-wrap{position:relative;height:56px;margin:0 auto 40px}
 .next .node{left:50%;top:50%}
@@ -339,11 +343,7 @@ main{overflow-x:clip}
   html{scroll-behavior:auto}
 }
 
-/* ============ Unfinished content ============ */
-/* ponytail: hidden publicly until filled in; add ?draft to the URL to see them */
-html:not(.draft) .todo,
-html:not(.draft) .figs:not(:has(> :not(.ph-img))),
-html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){display:none}
+
 
 /* ============ Projects: horizontal line, one project opened at a time ============ */
 .steps{display:none}
