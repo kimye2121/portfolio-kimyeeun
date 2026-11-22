@@ -85,16 +85,15 @@
 
   let mg = null;   // morph geometry (section 5); null when the morph is off
   // with the morph on, the projects section pins first and spends this much scroll (in screen heights)
-  // turning the line (TURN), then bringing its content in around the landed line (FADE)
-  const TURN = 1.0, FADE = 0.6;
-  const intro = () => (mg ? innerHeight * (TURN + FADE) : 0);
+  // finishing the turn of the line (TURN), then sliding the projects in from the right along it (SLIDE)
+  const TURN = 1.0, SLIDE = 0.7;
+  const intro = () => (mg ? innerHeight * (TURN + SLIDE) : 0);
   /* ---------- 3. Projects content comes in ---------- */
   const heroEl = document.querySelector('.hero'), mainEl = document.querySelector('main');
   const lift = () => {
     if (!heroEl) return;
-    // morph: after the line lands · otherwise: as the hero scrolls away
-    const from = mg ? mg.top + innerHeight * TURN : 0, span = mg ? innerHeight * FADE : heroEl.offsetHeight * 0.7;
-    mainEl.style.setProperty('--reveal', Math.min(1, Math.max(0, (scrollY - from) / span)));
+    if (mg) { mainEl.style.setProperty('--reveal', 1); return; }   // the morph brings the projects in itself
+    mainEl.style.setProperty('--reveal', Math.min(1, Math.max(0, scrollY / (heroEl.offsetHeight * 0.7))));
   };
 
   /* ---------- 4. Projects: a horizontal line; scrolling moves it and opens one project at a time ---------- */
@@ -108,6 +107,7 @@
     if (!proj) return;
     if (!pinned.matches) { cards.forEach(c => c.classList.remove('active')); active = -1; return; }
     if (performance.now() < busyUntil) return;           // a step is animating; it already chose the card
+    if (mg && scrollY < stepStart() - 2) { setActive(-1); return; }   // still arriving: nothing open yet
     const p = Math.min(1, Math.max(0, (scrollY - stepStart()) / stepSpan()));
     setActive(Math.min(cards.length - 1, Math.floor(p * cards.length)));
   }
@@ -116,7 +116,7 @@
     active = i;
     cards.forEach((c, k) => c.classList.toggle('active', k === i));
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
-    proj.querySelector('.steps').style.setProperty('--fill', ((i + 0.5) / cards.length * 100) + '%');
+    proj.querySelector('.steps').style.setProperty('--fill', i < 0 ? '0%' : ((i + 0.5) / cards.length * 100) + '%');
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
   const stepStart = () => proj.offsetTop + mainEl.offsetTop + intro();          // stepping begins after the intro
@@ -161,9 +161,11 @@
     morph = document.createElement('div');
     morph.className = 'morph'; morph.setAttribute('aria-hidden', 'true');
     morph.innerHTML = '<div class="m-line"><i></i></div><span class="node"></span><span class="node"></span><span class="node"></span>';
-    document.body.append(morph);
+    const bg = document.createElement('div');                              // the hero's gray half, turning with the line
+    bg.className = 'm-bg'; bg.setAttribute('aria-hidden', 'true'); bg.innerHTML = '<i></i>';
+    document.body.append(bg, morph);
     document.documentElement.classList.add('has-morph');
-    const mLine = morph.firstChild, mFill = mLine.firstChild, mNodes = [...morph.querySelectorAll('.node')];
+    const mLine = morph.firstChild, mFill = mLine.firstChild, mNodes = [...morph.querySelectorAll('.node')], bgHalf = bg.firstChild;
     const btns = [...bar.querySelectorAll('.step')];
     function morphLayout() {
       if (!pinned.matches) { mg = null; return; }
@@ -171,33 +173,36 @@
       const S = hstepEls.map(h => [sw.offsetLeft + steps.offsetLeft + h.offsetLeft, sw.offsetTop + steps.offsetTop + h.offsetTop]);
       const top = proj.offsetTop + mainEl.offsetTop, by = bar.offsetTop + 1;  // bar's y on screen while pinned (the pinned box sits at the top)
       const bx0 = wrap.offsetLeft + bar.offsetLeft, bw = bar.offsetWidth;
-      mg = { S, top, start: { x: S[0][0], y: S[0][1], ang: Math.atan2(S[2][1] - S[0][1], S[2][0] - S[0][0]), len: Math.hypot(S[2][0] - S[0][0], S[2][1] - S[0][1]) },
-             end: { x: bx0, y: by, ang: 0, len: bw }, f0: [0, .5, 1], f1: btns.map(b => (b.offsetLeft + b.offsetWidth / 2) / bw) };
+      mg = { top, start: { x: S[0][0], y: S[0][1], ang: Math.atan2(S[2][1] - S[0][1], S[2][0] - S[0][0]), len: Math.hypot(S[2][0] - S[0][0], S[2][1] - S[0][1]) },
+             end: { x: bx0, y: by, ang: 0, len: bw }, f0: [0, .5, 1] };
     }
-    const mix = (a, b, k) => a + (b - a) * k;
-    // timeline (scroll): [0, a1] the hero fades away under a still line · [a1, a2] the line turns and
-    // stretches over an empty page and lands on the (pinned, still empty) project bar · then the
-    // projects' content fades in around it (lift) · then stepping through the projects
+    const mix = (a, b, k) => a + (b - a) * k, clamp = v => Math.min(1, Math.max(0, v));
+    // timeline (scroll): [0, a1] the words fade and the circles go; line + gray half stay put
+    // · [a1, a2] line and gray half turn together, the line straightens out, the gray goes
+    // · [a2, a3] the projects slide in from the right along the line · then the first one opens
     function morphUpdate() {
-      const H = heroEl.offsetHeight, a1 = H * 0.6, a2 = mg ? mg.top + innerHeight * TURN : 0;
-      const on = mg && scrollY > 0 && scrollY < a2;
+      const H = heroEl.offsetHeight, s = scrollY;
+      const a1 = H * 0.6, a2 = mg ? mg.top + innerHeight * TURN : 0, a3 = a2 + innerHeight * SLIDE;
+      const on = mg && s > 0 && s < a3;
       document.documentElement.classList.toggle('morphing', !!on);
-      heroEl.style.setProperty('--hfade', mg ? Math.max(0, 1 - scrollY / a1) : 1);
-      heroEl.style.setProperty('--hlbl', mg ? Math.max(0, 1 - scrollY / (H * 0.2)) : 1);
-      if (!on) { morph.style.display = 'none'; return; }
-      const r = Math.min(1, Math.max(0, (scrollY - a1) / (a2 - a1)));
+      heroEl.style.setProperty('--hfade', mg ? clamp(1 - s / a1) : 1);
+      heroEl.style.setProperty('--hlbl', mg ? clamp(1 - s / (H * 0.2)) : 1);
+      mainEl.style.setProperty('--slide', mg ? 1 - Math.pow(1 - clamp((s - a2) / (a3 - a2)), 3) : 1); // ease-out arrival
+      if (!on) { morph.style.display = bg.style.display = 'none'; return; }
+      const r = clamp((s - a1) / (a2 - a1));
       const k = r < .5 ? 4 * r * r * r : 1 - Math.pow(-2 * r + 2, 3) / 2;  // ease in-out: sets off gently, lands gently
       const x = mix(mg.start.x, mg.end.x, k), y = mix(mg.start.y, mg.end.y, k);
       const ang = mix(mg.start.ang, mg.end.ang, k), len = mix(mg.start.len, mg.end.len, k);
-      const fs = mg.f0.map((f, i) => mix(f, mg.f1[i], k));
-      morph.style.display = 'block';
+      morph.style.display = bg.style.display = 'block';
       mLine.style.cssText = `left:${x}px;top:${y}px;width:${len}px;transform:rotate(${ang}rad)`;
-      mFill.style.width = mix(100, mg.f1[0] * 100, k) + '%';                // blue: whole hero line → up to project 01
-      const c = Math.cos(ang), s = Math.sin(ang), size = mix(28, 18, k);
+      mFill.style.width = mix(100, 0, k) + '%';                              // blue line → plain bar, filled again when a project opens
+      bgHalf.style.cssText = `left:${x}px;top:${y}px;transform:rotate(${ang}rad) translateX(-3000px);opacity:${clamp(1 - (k - .45) / .45)}`;
+      const nodeA = clamp(1 - s / (a1 * 0.5));                               // the circles go first; only the line carries on
+      const c = Math.cos(ang), sn = Math.sin(ang);
       mNodes.forEach((n, i) => {
-        n.style.cssText = `left:${x + c * len * fs[i]}px;top:${y + s * len * fs[i]}px;width:${size}px;height:${size}px`;
-        const cur = k < .5 ? i === 2 : i === 0;                            // Validate is current → then project 01
-        n.classList.toggle('current', cur); n.classList.toggle('on', k < .5 || i === 0);
+        const f = mg.f0[i];
+        n.style.cssText = `left:${x + c * len * f}px;top:${y + sn * len * f}px;opacity:${nodeA};display:${nodeA ? 'block' : 'none'}`;
+        n.classList.toggle('current', i === 2); n.classList.toggle('on', true);
       });
     }
     morphLayout();
