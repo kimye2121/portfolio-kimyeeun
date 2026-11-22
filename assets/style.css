@@ -304,13 +304,24 @@ main{overflow-x:clip}
   .top .wrap,.hero .wrap{padding-left:20px}
   .nav{gap:16px;font-size:14px}
   .nav a.hide-sm{display:none}
-  .hero .wrap{grid-template-columns:1fr;align-content:center;gap:24px;padding-top:96px;padding-bottom:110px}
+  .hero .wrap{grid-template-columns:1fr;align-content:center;gap:24px}
   .hero-steps{height:300px;margin-left:12px}
   .hstep.s1{left:4%;top:8%}.hstep.s2{left:22%;top:46%}.hstep.s3{left:40%;top:84%}
   .hero-title span{white-space:normal}
-  .hero-contact{left:auto;right:20px;bottom:28px;font-size:13.5px;text-align:right}
-  .hero-docs{left:auto;right:20px;bottom:62px;justify-content:flex-end;gap:8px}
-  .hero-doc{padding:8px 14px;font-size:13.5px}
+  .hero{flex-direction:column;align-items:stretch;justify-content:center;padding:88px 0 36px}
+  .hero .wrap{min-height:0;padding-top:0;padding-bottom:0}
+  .hero-title{font-size:min(7.4vw,34px)}
+  .hero-docs,.hero-contact{position:static;margin:0 20px;text-align:left}
+  .hero-docs{margin-top:28px;justify-content:flex-start}
+  .hero-contact{margin-top:14px}
+  .process{display:none}                     /* the three paragraphs above already say it; the wide diagram doesn't read on a phone */
+  .meta-row{flex-wrap:wrap}
+  .hero-contact{font-size:13.5px}
+  .hero-docs{gap:8px}
+  .hero-doc{padding:7px 12px;font-size:13px;gap:6px}
+  .hero-doc.soon::after{font-size:11px;padding:1px 6px}
+  .hero-docs{order:1}
+  .hero-contact{order:2}
   .scroll-cue{display:none}
   .sec{padding:120px 0 20px}
   .profile{flex-direction:column;text-align:center;gap:18px}
@@ -320,8 +331,6 @@ main{overflow-x:clip}
   .cs-hero::before{clip-path:polygon(0 0,100% 0,100% 40%,0 60%)}
   .node{width:22px;height:22px}
   .node.lg{width:44px;height:44px}
-  .process{overflow-x:auto;margin-right:-20px;padding-bottom:8px}
-  .process svg{min-width:720px}
   .br-pc{display:none}
 }
 @media (prefers-reduced-motion:reduce){
