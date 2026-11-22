@@ -334,7 +334,7 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
   .proj .kicker{margin-bottom:12px}
   .proj .h1{font-size:clamp(26px,2.6vw,40px)}
   .steps{display:flex;position:relative;margin-bottom:24px} /* one blue line; the current project is the filled node */
-  .steps::before{content:"";position:absolute;left:-50vw;right:calc(100% / 6);top:-2px;height:2px;background:var(--blue)} /* in from off-screen, ending at the last circle */
+  .steps::before{content:"";position:absolute;left:-50vw;right:calc(100% - var(--fill,16.667%));top:-2px;height:2px;background:var(--blue);transition:right .7s var(--ease)} /* in from off-screen, up to the current circle */
   .step{flex:1;position:relative;background:none;border:0;font:inherit;font-size:15px;font-weight:600;color:var(--ink-4);padding:22px 0 0;cursor:pointer;transition:color .4s}
   .step .node{left:50%;top:-1px;width:18px;height:18px}
   .step.on{color:var(--ink-2)}.step.current{color:var(--blue)}

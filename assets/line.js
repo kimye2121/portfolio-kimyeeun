@@ -128,6 +128,7 @@
     active = i;
     const shown = Math.max(0, i);                         // before arrival the first project is already in view, still closed
     cards.forEach((c, k) => { c.classList.toggle('active', k === i); c.classList.toggle('shown', k === shown); c.classList.toggle('past', k < shown); });
+    proj.querySelector('.steps').style.setProperty('--fill', (shown + 0.5) / cards.length * 100 + '%');   // blue runs up to the current circle
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
 
   }
@@ -186,13 +187,11 @@
       const top = proj.offsetTop + mainEl.offsetTop, by = bar.offsetTop + 1;  // bar's y on screen while pinned (the pinned box sits at the top)
       const bx0 = wrap.offsetLeft + bar.offsetLeft, bw = bar.offsetWidth;
       bar.style.setProperty('--below', (innerHeight - by) + 'px');            // gray under the bar fills the pinned screen, no further
-      // pivot = where the hero line crosses the project bar's line: it never moves, the line turns on it and grows
-      const dx = S[2][0] - S[0][0], dy = S[2][1] - S[0][1], P = [S[0][0] + (by - S[0][1]) * dx / dy, by];
-      const sgn = by >= S[0][1] ? 1 : -1;
-      const L0 = sgn * Math.hypot(P[0] - S[0][0], P[1] - S[0][1]), R0 = Math.hypot(S[2][0] - P[0], S[2][1] - P[1]);
-      const last = bar.querySelector('.step:last-of-type');
-      const L1 = P[0] - bx0, R1 = bx0 + last.offsetLeft + last.offsetWidth / 2 - P[0];   // ends at the last project's circle
-      mg = { top, S, P, a0: Math.atan2(dy, dx), L0, R0, L1, R1 };
+      // the blue tip (Validate) travels to project 01's circle while the line turns flat;
+      // the other end always runs off-screen, so the line reads as one line swinging into place
+      const first = bar.querySelector('.step');
+      const n1 = [bx0 + first.offsetLeft + first.offsetWidth / 2, by];
+      mg = { top, S, V: S[2], T1: n1, a0: Math.atan2(S[2][1] - S[0][1], S[2][0] - S[0][0]) };
     }
     const mix = (a, b, k) => a + (b - a) * k, clamp = v => Math.min(1, Math.max(0, v));
     // timeline (scroll): [0, a1] the words fade and the circles go; line + gray half stay put
@@ -211,12 +210,11 @@
       const ease = v => (v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);  // sets off gently, lands gently
       const k = ease(r);
       const ang = mix(mg.a0, 0, k), c = Math.cos(ang), sn = Math.sin(ang);
-      const L = (sn > 1e-3 ? Math.min((mg.P[1] + 40) / sn, (mg.P[0] + 40) / c) : mg.P[0] + 40); // back end: always off-screen
-      const R = mix(mg.R0, mg.R1, k);                                         // front end settles on the bar's end
-      const x = mg.P[0] - c * L, y = mg.P[1] - sn * L;                        // the line's back end, seen from the fixed pivot
+      const T = [mix(mg.V[0], mg.T1[0], k), mix(mg.V[1], mg.T1[1], k)];     // the tip
+      const L = sn > 1e-3 ? Math.min((T[1] + 40) / sn, (T[0] + 40) / c) : T[0] + 40;   // back to just off-screen
       morph.style.display = bg.style.display = 'block';
-      mLine.style.cssText = `left:${x}px;top:${y}px;width:${L + R}px;transform:rotate(${ang}rad)`;
-      bgHalf.style.cssText = `left:${mg.P[0]}px;top:${mg.P[1]}px;transform:rotate(${ang}rad) translateX(-3000px)`;   // stays: it becomes the gray under the project bar
+      mLine.style.cssText = `left:${T[0] - c * L}px;top:${T[1] - sn * L}px;width:${L}px;transform:rotate(${ang}rad)`;
+      bgHalf.style.cssText = `left:${T[0]}px;top:${T[1]}px;transform:rotate(${ang}rad) translateX(-3000px)`;   // stays: it becomes the gray under the project bar
       const nodeA = clamp(1 - s / (a1 * 0.5));                               // the circles go first; only the line carries on
       mNodes.forEach((n, i) => {
         n.style.cssText = `left:${mg.S[i][0]}px;top:${mg.S[i][1]}px;opacity:${nodeA};display:${nodeA ? 'block' : 'none'}`;
