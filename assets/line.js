@@ -83,9 +83,19 @@
   if (document.fonts) document.fonts.ready.then(place);
   place();
 
-  /* ---------- 3. Projects ease in as the hero scrolls away ---------- */
+  let mg = null;   // morph geometry (section 5); null when the morph is off
+  // with the morph on, the projects section pins first and spends this much scroll (in screen heights)
+  // turning the line (TURN), then bringing its content in around the landed line (FADE)
+  const TURN = 1.0, FADE = 0.6;
+  const intro = () => (mg ? innerHeight * (TURN + FADE) : 0);
+  /* ---------- 3. Projects content comes in ---------- */
   const heroEl = document.querySelector('.hero'), mainEl = document.querySelector('main');
-  const lift = () => { if (heroEl) mainEl.style.setProperty('--reveal', Math.min(1, scrollY / (heroEl.offsetHeight * 0.7))); };
+  const lift = () => {
+    if (!heroEl) return;
+    // morph: after the line lands · otherwise: as the hero scrolls away
+    const from = mg ? mg.top + innerHeight * TURN : 0, span = mg ? innerHeight * FADE : heroEl.offsetHeight * 0.7;
+    mainEl.style.setProperty('--reveal', Math.min(1, Math.max(0, (scrollY - from) / span)));
+  };
 
   /* ---------- 4. Projects: a horizontal line; scrolling moves it and opens one project at a time ---------- */
   const proj = document.querySelector('.proj');
@@ -98,8 +108,7 @@
     if (!proj) return;
     if (!pinned.matches) { cards.forEach(c => c.classList.remove('active')); active = -1; return; }
     if (performance.now() < busyUntil) return;           // a step is animating; it already chose the card
-    const r = proj.getBoundingClientRect();
-    const p = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+    const p = Math.min(1, Math.max(0, (scrollY - stepStart()) / stepSpan()));
     setActive(Math.min(cards.length - 1, Math.floor(p * cards.length)));
   }
   function setActive(i) {
@@ -110,14 +119,16 @@
     proj.querySelector('.steps').style.setProperty('--fill', ((i + 0.5) / cards.length * 100) + '%');
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
-  const stepTop = k => proj.offsetTop + mainEl.offsetTop + (k + 0.5) / cards.length * (proj.offsetHeight - innerHeight);
+  const stepStart = () => proj.offsetTop + mainEl.offsetTop + intro();          // stepping begins after the intro
+  const stepSpan = () => proj.offsetHeight - innerHeight - intro();
+  const stepTop = k => stepStart() + (k + 0.5) / cards.length * stepSpan();
   const goTo = k => { busyUntil = performance.now() + 750; setActive(k); scrollTo({ top: stepTop(k), behavior: reduce ? 'auto' : 'smooth' }); };
   projSteps.forEach((s, k) => s.addEventListener('click', () => goTo(k)));
   let lastInput = 0, held = false;
   function step(dir, e) {
     if (!proj || !pinned.matches) return;
-    const top = proj.offsetTop + mainEl.offsetTop, y = scrollY;
-    if (y < top - 2 || y > top + proj.offsetHeight - innerHeight + 2) return; // not pinned right now
+    const y = scrollY;
+    if (y < stepStart() - 2 || y > stepStart() + stepSpan() + 2) return; // not in the stepping range (intro scrolls freely)
     const now = performance.now(), quiet = now - lastInput > 220;
     lastInput = now;
     if (quiet) held = false;                              // a pause between gestures frees the next step
@@ -145,31 +156,38 @@
      into the project line as you scroll; its three nodes become the three projects ---------- */
   const hstepEls = [...document.querySelectorAll('.hstep')];
   const bar = proj && proj.querySelector('.steps');
-  let morph = null, mg = null;
+  let morph = null;
   if (hstepEls.length === 3 && bar && !reduce) {
     morph = document.createElement('div');
     morph.className = 'morph'; morph.setAttribute('aria-hidden', 'true');
     morph.innerHTML = '<div class="m-line"><i></i></div><span class="node"></span><span class="node"></span><span class="node"></span>';
     document.body.append(morph);
+    document.documentElement.classList.add('has-morph');
     const mLine = morph.firstChild, mFill = mLine.firstChild, mNodes = [...morph.querySelectorAll('.node')];
     const btns = [...bar.querySelectorAll('.step')];
     function morphLayout() {
       if (!pinned.matches) { mg = null; return; }
       const sw = steps.offsetParent, wrap = bar.offsetParent;
       const S = hstepEls.map(h => [sw.offsetLeft + steps.offsetLeft + h.offsetLeft, sw.offsetTop + steps.offsetTop + h.offsetTop]);
-      const top = proj.offsetTop + mainEl.offsetTop, by = wrap.offsetTop + bar.offsetTop + 1;  // bar's y at the moment it pins
+      const top = proj.offsetTop + mainEl.offsetTop, by = bar.offsetTop + 1;  // bar's y on screen while pinned (the pinned box sits at the top)
       const bx0 = wrap.offsetLeft + bar.offsetLeft, bw = bar.offsetWidth;
       mg = { S, top, start: { x: S[0][0], y: S[0][1], ang: Math.atan2(S[2][1] - S[0][1], S[2][0] - S[0][0]), len: Math.hypot(S[2][0] - S[0][0], S[2][1] - S[0][1]) },
              end: { x: bx0, y: by, ang: 0, len: bw }, f0: [0, .5, 1], f1: btns.map(b => (b.offsetLeft + b.offsetWidth / 2) / bw) };
     }
     const mix = (a, b, k) => a + (b - a) * k;
+    // timeline (scroll): [0, a1] the hero fades away under a still line · [a1, a2] the line turns and
+    // stretches over an empty page and lands on the (pinned, still empty) project bar · then the
+    // projects' content fades in around it (lift) · then stepping through the projects
     function morphUpdate() {
-      const on = mg && scrollY > 0 && scrollY < mg.top;
+      const H = heroEl.offsetHeight, a1 = H * 0.6, a2 = mg ? mg.top + innerHeight * TURN : 0;
+      const on = mg && scrollY > 0 && scrollY < a2;
       document.documentElement.classList.toggle('morphing', !!on);
-      if (!on) { morph.style.display = 'none'; heroEl.style.setProperty('--hlbl', scrollY > 0 && mg ? 0 : 1); return; }
-      const r = scrollY / mg.top, k = r * r * (3 - 2 * r);                 // smoothstep
-      // the start point rides up with the hero a little, then settles where the bar will pin
-      const x = mix(mg.start.x, mg.end.x, k), y = mix(mg.start.y - scrollY * (1 - k), mg.end.y, k);
+      heroEl.style.setProperty('--hfade', mg ? Math.max(0, 1 - scrollY / a1) : 1);
+      heroEl.style.setProperty('--hlbl', mg ? Math.max(0, 1 - scrollY / (H * 0.2)) : 1);
+      if (!on) { morph.style.display = 'none'; return; }
+      const r = Math.min(1, Math.max(0, (scrollY - a1) / (a2 - a1)));
+      const k = r < .5 ? 4 * r * r * r : 1 - Math.pow(-2 * r + 2, 3) / 2;  // ease in-out: sets off gently, lands gently
+      const x = mix(mg.start.x, mg.end.x, k), y = mix(mg.start.y, mg.end.y, k);
       const ang = mix(mg.start.ang, mg.end.ang, k), len = mix(mg.start.len, mg.end.len, k);
       const fs = mg.f0.map((f, i) => mix(f, mg.f1[i], k));
       morph.style.display = 'block';
@@ -181,7 +199,6 @@
         const cur = k < .5 ? i === 2 : i === 0;                            // Validate is current → then project 01
         n.classList.toggle('current', cur); n.classList.toggle('on', k < .5 || i === 0);
       });
-      heroEl.style.setProperty('--hlbl', Math.max(0, 1 - r * 5));          // Why/Decide/Validate labels fade quickly
     }
     morphLayout();
     addEventListener('resize', morphLayout);
