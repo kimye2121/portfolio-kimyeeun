@@ -113,11 +113,11 @@
   const projSteps = proj ? [...proj.querySelectorAll('.step')] : [];
   const cards = proj ? [...proj.querySelectorAll('.card')] : [];
   const pinned = matchMedia('(min-width:900px) and (min-height:640px)');
-  let active = -1;
+  let active = -2;   // -2: nothing applied yet · -1: arriving (first project shown, closed)
   let busyUntil = 0;
   function projUpdate() {
     if (!proj) return;
-    if (!pinned.matches) { cards.forEach(c => c.classList.remove('active')); active = -1; return; }
+    if (!pinned.matches) { cards.forEach(c => c.classList.remove('active', 'shown', 'past')); active = -2; return; }
     if (performance.now() < busyUntil) return;           // a step is animating; it already chose the card
     if (mg && scrollY < stepStart() - 2) { setActive(-1); return; }   // still arriving: nothing open yet
     const p = Math.min(1, Math.max(0, (scrollY - stepStart()) / stepSpan()));
@@ -126,7 +126,8 @@
   function setActive(i) {
     if (i === active) return;
     active = i;
-    cards.forEach((c, k) => c.classList.toggle('active', k === i));
+    const shown = Math.max(0, i);                         // before arrival the first project is already in view, still closed
+    cards.forEach((c, k) => { c.classList.toggle('active', k === i); c.classList.toggle('shown', k === shown); c.classList.toggle('past', k < shown); });
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
 
   }
@@ -230,7 +231,7 @@
 
   const frame = () => { lift(); projUpdate(); if (morph) morphUpdate(); };
   addEventListener('scroll', frame, { passive: true });
-  addEventListener('resize', () => { active = -1; frame(); });
+  addEventListener('resize', () => { active = -2; frame(); });
   frame();
 
   /* ---------- header state + nav highlight + reveal ---------- */

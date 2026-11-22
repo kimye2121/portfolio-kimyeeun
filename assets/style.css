@@ -173,6 +173,9 @@ main,header,footer,section{position:relative}
 .card h3 small{font-size:18px;font-weight:700;color:var(--ink-2)}
 .card .sub{font-weight:600;color:var(--ink-2);margin-top:6px;font-size:16px}
 .card .award{color:var(--ink-3);font-size:14px;margin-top:4px;line-height:1.55}
+.card .role{color:var(--ink-2);font-size:14px;font-weight:600;margin-top:14px}
+.card .role b{color:var(--blue);font-weight:600;margin-right:10px}
+.card .role + .award{margin-top:2px}
 .mini{list-style:none;margin-top:auto;padding-top:24px;border-top:1px solid var(--rule);position:relative}
 .card .award + .mini,.card .sub + .mini{margin-top:24px}
 .mini::before{content:"";position:absolute;left:5px;top:36px;bottom:12px;width:2px;background:var(--blue-300)}
@@ -335,23 +338,22 @@ html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){dis
   .step{flex:1;position:relative;background:none;border:0;font:inherit;font-size:15px;font-weight:600;color:var(--ink-4);padding:22px 0 0;cursor:pointer;transition:color .4s}
   .step .node{left:50%;top:-1px;width:18px;height:18px}
   .step.on{color:var(--ink-2)}.step.current{color:var(--blue)}
-  .proj .cards{display:flex;gap:20px;align-items:flex-start}
-  .proj .card{flex:1 1 0;min-width:0;transition:flex-grow .6s var(--ease),transform .4s var(--ease),box-shadow .4s var(--ease)}
-  .proj .card .thumb img{will-change:transform}
-  .proj .card.active{flex-grow:2.3}
-  /* thumbnails take whatever height the screen leaves after the heading, the line and the open card's text */
-  .proj .card .thumb{aspect-ratio:auto;height:clamp(110px,calc(91vh - 670px),34vh)}
-  .proj .card .body{padding:22px 26px 24px}
+  /* one project at a time: picture on one side, its short story on the other; the next slides in from the right */
+  .proj .cards{display:grid;grid-template-columns:1fr}
+  #projects .card{grid-area:1/1;display:grid;grid-template-columns:1.25fr 1fr;align-items:center;opacity:0;transform:translateX(64px);pointer-events:none;
+    transition:opacity .5s var(--ease),transform .7s var(--ease),box-shadow .4s var(--ease)}
+  #projects .card.past{transform:translateX(-64px)}
+  #projects .card.shown,#projects .card.shown:hover{opacity:1;transform:none;pointer-events:auto}
+  .proj .card .thumb{aspect-ratio:16/9;height:auto;min-width:0;align-self:center;margin:clamp(16px,1.6vw,24px);margin-right:0;border-radius:14px} /* whole picture, uncropped, framed in its half */
+  .proj .card .body{padding:clamp(24px,3vw,44px)}
+  .proj .card h3{font-size:clamp(26px,2.2vw,34px)}
   .proj .br-pc{display:none}
   .proj .detail{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .7s var(--ease),opacity .5s}
   .proj .detail>div{overflow:hidden;min-height:0}
   .proj .card.active .detail{grid-template-rows:1fr;opacity:1}
-  .proj .card:not(.active) h3 small,.proj .card:not(.active) .period{display:none}
 }
 @media (min-width:900px) and (min-height:640px) and (max-height:940px){
   /* short laptop screens: smaller thumbnails; awards stay on the case-study page */
-  .proj .card .thumb{height:clamp(110px,calc(91vh - 625px),34vh)}
   .proj-pin{padding-top:calc(64px + 2vh)}
-  .proj .award{display:none}
   .proj .kicker{margin-bottom:6px}
 }
