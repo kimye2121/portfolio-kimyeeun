@@ -22,12 +22,24 @@
     const nodes = hs.map(h => h.querySelector('.node'));
     const hero = steps.closest('.hero');
 
+    const wide = matchMedia('(min-width:900px) and (min-height:640px)');
+    let lead = 0;                                   // seconds spent drawing the part that comes in from off-screen
     const layout = () => {
       const p = hs.map(h => [h.offsetLeft, h.offsetTop]);
-      main.setAttribute('d', 'M' + p.map(q => q.join(',')).join(' L'));
       const b = p[p.length - 1];
-      // gray diagonal = the same line as the steps, extended to the hero's top and bottom edges
       const ox = steps.offsetParent.offsetLeft + steps.offsetLeft, oy = steps.offsetParent.offsetTop + steps.offsetTop;
+      // on wide screens the line starts off-screen above Why (it later turns into the project bar,
+      // which also runs in from off-screen); on phones it would cut through the title, so it starts at Why
+      let pts = p;
+      if (wide.matches) {
+        const [a, c] = [p[0], p[1]], k = (a[1] + oy + 40) / (c[1] - a[1]);   // back along Why←Decide to 40px above the screen
+        pts = [[a[0] - (c[0] - a[0]) * k, a[1] - (c[1] - a[1]) * k], ...p];
+      }
+      main.setAttribute('d', 'M' + pts.map(q => q.join(',')).join(' L'));
+      const seg = Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) * 2, pre = Math.hypot(pts[0][0] - p[0][0], pts[0][1] - p[0][1]);
+      lead = pts.length > p.length ? 2.6 * pre / seg : 0;
+      main.style.transitionDuration = (2.6 + lead) + 's';                      // same speed, just a longer run-up
+      // gray diagonal = the same line as the steps, extended to the hero's top and bottom edges
       const A = [ox + p[0][0], oy + p[0][1]], B = [ox + b[0], oy + b[1]], m = (B[0] - A[0]) / (B[1] - A[1]);
       hero.style.setProperty('--x0', (A[0] - m * A[1]) + 'px');
       hero.style.setProperty('--x1', (A[0] + m * (hero.offsetHeight - A[1])) + 'px');
@@ -40,7 +52,7 @@
     if (reduce) { svg.classList.add('drawn'); light(2); }
     else {
       requestAnimationFrame(() => requestAnimationFrame(() => svg.classList.add('drawn')));
-      [400, 1700, 3000].forEach((t, i) => setTimeout(() => light(i), t)); // matches the CSS draw timing (.hero-line)
+      [400, 1700, 3000].forEach((t, i) => setTimeout(() => light(i), t + lead * 1000)); // matches the draw (.hero-line)
     }
   }
 
@@ -197,7 +209,7 @@
       const ease = v => (v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);  // sets off gently, lands gently
       const k = ease(r);
       const ang = mix(mg.a0, 0, k), c = Math.cos(ang), sn = Math.sin(ang);
-      const L = mix(mg.L0, mg.L1, k);                                         // back end grows out to the bar's start
+      const L = (sn > 1e-3 ? Math.min((mg.P[1] + 40) / sn, (mg.P[0] + 40) / c) : mg.P[0] + 40); // back end: always off-screen
       const R = mix(mg.R0, mg.R1, k);                                         // front end settles on the bar's end
       const x = mg.P[0] - c * L, y = mg.P[1] - sn * L;                        // the line's back end, seen from the fixed pivot
       morph.style.display = bg.style.display = 'block';
