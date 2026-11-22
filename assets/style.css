@@ -291,3 +291,9 @@ main,header,footer,section{position:relative}
   .hero-title span,.js .rv{opacity:1;transform:none}
   html{scroll-behavior:auto}
 }
+
+/* ============ Unfinished content ============ */
+/* ponytail: hidden publicly until filled in; add ?draft to the URL to see them */
+html:not(.draft) .todo,
+html:not(.draft) .figs:not(:has(> :not(.ph-img))),
+html:not(.draft) .cs-sec:not(:has(.prose,.stat-row,.deliverables,.figs img)){display:none}
