@@ -89,6 +89,7 @@ main,header,footer,section{position:relative}
   background:var(--bg);border-radius:0 0 36px 36px;box-shadow:0 1px 0 var(--rule),0 30px 70px rgba(16,24,40,.12)}
 /* cover: the hero is the top layer and lifts away; the page underneath holds still until it is uncovered */
 main>section:not(.hero){z-index:2;transform:translateY(var(--lift,0px))}
+#projects>.wrap{opacity:calc(.1 + .9*var(--reveal,1));transform:translateY(calc((1 - var(--reveal,1))*80px)) scale(calc(.96 + .04*var(--reveal,1)))}
 .hero::before{ /* the diagonal split from the slides */
   content:"";position:absolute;inset:0;background:var(--bg-2);
   clip-path:polygon(0 0,var(--x0,59%) 0,var(--x1,80%) 100%,0 100%); /* --x0/--x1 set by line.js to follow the steps line */

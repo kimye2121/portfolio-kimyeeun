@@ -91,7 +91,12 @@
 
   /* ---------- 3. Cover: hero lifts away, the page underneath holds still ---------- */
   const heroEl = document.querySelector('.hero'), mainEl = document.querySelector('main');
-  const lift = () => { if (heroEl) mainEl.style.setProperty('--lift', -Math.max(0, heroEl.offsetHeight - scrollY) + 'px'); };
+  const lift = () => {
+    if (!heroEl) return;
+    const h = heroEl.offsetHeight;
+    mainEl.style.setProperty('--lift', -Math.max(0, h - scrollY) + 'px');
+    mainEl.style.setProperty('--reveal', Math.min(1, scrollY / h)); // projects fade in as the cover lifts
+  };
 
   /* ---------- 4. Projects: a horizontal line; scrolling moves it and opens one project at a time ---------- */
   const proj = document.querySelector('.proj');
@@ -111,10 +116,37 @@
     projSteps.forEach((s, k) => { s.classList.toggle('on', k <= i); s.classList.toggle('current', k === i); s.firstChild.classList.toggle('on', k <= i); s.firstChild.classList.toggle('current', k === i); });
     proj.querySelector('.steps').style.setProperty('--fill', ((i + 0.5) / cards.length * 100) + '%');
   }
-  projSteps.forEach((s, k) => s.addEventListener('click', () => {
-    const top = proj.getBoundingClientRect().top + scrollY;
-    scrollTo({ top: top + (k + 0.5) / cards.length * (proj.offsetHeight - innerHeight), behavior: reduce ? 'auto' : 'smooth' });
-  }));
+  // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
+  const stepTop = k => proj.offsetTop + mainEl.offsetTop + (k + 0.5) / cards.length * (proj.offsetHeight - innerHeight);
+  const goTo = k => scrollTo({ top: stepTop(k), behavior: reduce ? 'auto' : 'smooth' });
+  projSteps.forEach((s, k) => s.addEventListener('click', () => goTo(k)));
+  let busyUntil = 0, lastInput = 0, held = false;
+  function step(dir, e) {
+    if (!proj || !pinned.matches) return;
+    const top = proj.offsetTop + mainEl.offsetTop, y = scrollY;
+    if (y < top - 2 || y > top + proj.offsetHeight - innerHeight + 2) return; // not pinned right now
+    const now = performance.now(), quiet = now - lastInput > 220;
+    lastInput = now;
+    if (quiet) held = false;                              // a pause between gestures frees the next step
+    if (held || now < busyUntil) { e.preventDefault(); return; } // same gesture (trackpad momentum, key repeat): swallow
+    const next = active + dir;
+    if (next < 0 || next >= cards.length) return;        // first/last project: a new gesture scrolls on
+    e.preventDefault();
+    held = true; busyUntil = now + 750;
+    goTo(next);
+  }
+  addEventListener('wheel', e => { if (Math.abs(e.deltaY) > 2) step(Math.sign(e.deltaY), e); }, { passive: false });
+  addEventListener('keydown', e => {
+    const d = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 }[e.key];
+    if (d && !e.target.closest('input,textarea')) step(e.shiftKey && e.key === ' ' ? -1 : d, e);
+  });
+  let ty = null;
+  addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });
+  addEventListener('touchmove', e => {
+    if (ty === null) return;
+    const dy = ty - e.touches[0].clientY;
+    if (Math.abs(dy) > 30) { step(Math.sign(dy), e); if (e.defaultPrevented) ty = null; }
+  }, { passive: false });
 
   const frame = () => { lift(); projUpdate(); };
   addEventListener('scroll', frame, { passive: true });
