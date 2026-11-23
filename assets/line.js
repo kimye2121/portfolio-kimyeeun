@@ -23,6 +23,7 @@
     const hero = steps.closest('.hero');
 
     const wide = matchMedia('(min-width:900px) and (min-height:560px)');
+    const DRAW = 1.7;                               // seconds to draw Why → Validate (was 2.6; also in style.css .hero-line .main)
     let lead = 0;                                   // seconds spent drawing the part that comes in from off-screen
     const layout = () => {
       const p = hs.map(h => [h.offsetLeft, h.offsetTop]);
@@ -37,8 +38,8 @@
       }
       main.setAttribute('d', 'M' + pts.map(q => q.join(',')).join(' L'));
       const seg = Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) * 2, pre = Math.hypot(pts[0][0] - p[0][0], pts[0][1] - p[0][1]);
-      lead = pts.length > p.length ? 2.6 * pre / seg : 0;
-      main.style.transitionDuration = (2.6 + lead) + 's';                      // same speed, just a longer run-up
+      lead = pts.length > p.length ? DRAW * pre / seg : 0;
+      main.style.transitionDuration = (DRAW + lead) + 's';                      // same speed, just a longer run-up
       // gray diagonal = the same line as the steps, extended to the hero's top and bottom edges
       const A = [ox + p[0][0], oy + p[0][1]], B = [ox + b[0], oy + b[1]], m = (B[0] - A[0]) / (B[1] - A[1]);
       hero.style.setProperty('--x0', (A[0] - m * A[1]) + 'px');
@@ -52,7 +53,7 @@
     if (reduce) { svg.classList.add('drawn'); light(2); }
     else {
       requestAnimationFrame(() => requestAnimationFrame(() => svg.classList.add('drawn')));
-      [400, 1700, 3000].forEach((t, i) => setTimeout(() => light(i), t + lead * 1000)); // matches the draw (.hero-line)
+      [250, 250 + DRAW * 500, 250 + DRAW * 1000].forEach((t, i) => setTimeout(() => light(i), t + lead * 1000)); // matches the draw (.hero-line)
     }
   }
 
@@ -70,6 +71,17 @@
 
   function place() {
     rails.forEach(r => { r.rail.style.top = (r.head.offsetTop + r.node.offsetTop) + 'px'; });
+    // each shown rail runs on until it reaches the next section's circle (e.g. Archive → About), so the line never breaks
+    const nodes = [...document.querySelectorAll('.sec-head > .node')].filter(n => n.getClientRects().length && getComputedStyle(n).visibility !== 'hidden');
+    const pageY = el => { const b = el.getBoundingClientRect(); return b.top + b.height / 2 + scrollY; };
+    rails.forEach(r => {
+      r.rail.style.height = ''; r.rail.style.bottom = ''; r.rail.classList.remove('joined');
+      if (!r.rail.getClientRects().length) return;                       // hidden rail (pinned projects, About)
+      const next = nodes.find(n => n !== r.node && pageY(n) > pageY(r.node) + 1 && !r.head.parentElement.contains(n));
+      if (!next) return;
+      const top = r.rail.getBoundingClientRect().top + scrollY;
+      r.rail.style.bottom = 'auto'; r.rail.style.height = (pageY(next) - top) + 'px'; r.rail.classList.add('joined');
+    });
     update();
   }
 
@@ -100,6 +112,7 @@
   addEventListener('load', place);
   if (document.fonts) document.fonts.ready.then(place);
   place();
+  addEventListener('load', place);                                     // images change heights
 
   let mg = null;   // morph geometry (section 5); null when the morph is off
   // with the morph on, the projects section pins first and spends this much scroll (in screen heights)
