@@ -164,12 +164,15 @@
   // from the cover, one gesture (or a click) winds the whole turn by itself, quickly, to the first project;
   // one gesture back up from the first project winds back to the cover
   let glideUntil = 0;
-  function glide(to, dur = 1600) {
+  // ease 'inout': gentle start and stop (cover → projects); 'out': picks up the hand's motion and settles (section snaps)
+  const EASE = { inout: v => -(Math.cos(Math.PI * v) - 1) / 2, out: v => 1 - Math.pow(1 - v, 3) };
+  function glide(to, dur, kind = 'inout') {
     const html = document.documentElement, from = scrollY, t0 = performance.now();
+    if (dur === undefined) dur = Math.min(2800, Math.max(1800, Math.abs(to - from) / innerHeight * 800));   // longer way = longer ride, never a jump
     if (reduce) dur = 0;
     glideUntil = t0 + dur + 150;
     html.style.scrollBehavior = 'auto';
-    const ease = v => (v < .5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);
+    const ease = EASE[kind];
     const tick = now => {
       const v = dur ? Math.min(1, (now - t0) / dur) : 1;
       scrollTo(0, from + (to - from) * ease(v));
@@ -197,10 +200,45 @@
     goTo(next);
   }
 
-  addEventListener('wheel', e => { if (Math.abs(e.deltaY) > 2) step(Math.sign(e.deltaY), e); }, { passive: false });
+  // below the projects: one gesture lands on the start of the next (or previous) section.
+  // A section taller than the screen still scrolls normally until its end is near, so long text stays readable.
+  const SNAP_GAP = 96;                                   // heading sits this far below the top (header 64 + a little air)
+  const pageTop = el => el.getBoundingClientRect().top + scrollY;
+  // each stop: where to park, and where that stop's own block begins (the previous block's text ends just above it)
+  const snapStops = () => {
+    const t = [];
+    if (proj && pinned.matches) t.push({ y: stepTop(stops() - 1), block: pageTop(proj) + proj.offsetHeight });  // the projects overview
+    else t.push({ y: 0, block: 0 });                                                                            // case-study pages: the cover
+    document.querySelectorAll('main > .sec:not(.proj) .sec-head, main > .cs-sec .sec-head, .end .node-wrap, .next .node-wrap')
+      .forEach(h => t.push({ y: pageTop(h) - SNAP_GAP, block: pageTop(h.closest('section,.next') || h) }));
+    return t.map(o => ({ y: Math.round(o.y), block: o.block })).sort((a, b) => a.y - b.y);
+  };
+  let snapLast = 0, snapHeld = false;
+  function snap(dir, e) {
+    if (!pinned.matches || e.defaultPrevented) return;   // phones and small windows: plain scrolling
+    const y = scrollY, now = performance.now(), quiet = now - snapLast > 220;
+    snapLast = now; if (quiet) snapHeld = false;
+    if (snapHeld || now < glideUntil) { e.preventDefault(); return; }               // rest of the same gesture
+    const st = snapStops(), tops = st.map(o => o.y);
+    if (tops.length && y < tops[0] - 4) return;                                     // above: the projects handle it
+    const k = dir > 0 ? tops.findIndex(t => t > y + 4) : tops.findLastIndex(t => t < y - 4);
+    if (k < 0) return;
+    const to = tops[k];
+    const pinTail = proj && pinned.matches && (to === tops[0] || y <= stepStart() + stepSpan() + 4);   // overview ↔ Archive: only the pinned tail lies between
+    const d = Math.abs(to - y), onStop = tops.some(t => Math.abs(t - y) < 12);
+    // the block between the two stops fits on one screen when parked at the upper stop → nothing is skipped by jumping
+    const upper = dir > 0 ? y : to, lower = dir > 0 ? st[k] : st[k + 1];
+    const fits = lower && lower.block - 40 <= upper + innerHeight * 1.1;
+    // from a section start: one gesture goes to the next start when nothing would be skipped.
+    // mid-way through a long section: scroll on normally, and only ease the last half screen in
+    if (!pinTail && (onStop ? !(fits || d <= innerHeight * 1.05) : d > innerHeight * 0.5)) return;
+    e.preventDefault(); snapHeld = true; glide(to, Math.min(1100, 500 + d / innerHeight * 500), 'out');
+  }
+
+  addEventListener('wheel', e => { if (Math.abs(e.deltaY) > 2) { step(Math.sign(e.deltaY), e); snap(Math.sign(e.deltaY), e); } }, { passive: false });
   addEventListener('keydown', e => {
     const d = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 }[e.key];
-    if (d && !e.target.closest('input,textarea')) step(e.shiftKey && e.key === ' ' ? -1 : d, e);
+    if (d && !e.target.closest('input,textarea')) { const k = e.shiftKey && e.key === ' ' ? -1 : d; step(k, e); snap(k, e); }
   });
   let ty = null;
   addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });

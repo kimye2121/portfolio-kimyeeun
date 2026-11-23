@@ -99,7 +99,7 @@ main{overflow-x:clip}
 /* ============ Layout ============ */
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--side) 0 var(--gutter);position:relative}
 .sec{padding:var(--sec-y) 0 var(--sec-b)}
-#about{padding-top:calc(var(--sec-y) + 100px)} /* extra room after the pinned projects */
+
 #about .rail{display:none}
 #projects .sec-head > .node{visibility:hidden} /* Projects: no circle before the title */
 .sec-head{position:relative;margin-bottom:var(--s-7)}
