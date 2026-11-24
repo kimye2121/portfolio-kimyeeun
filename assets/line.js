@@ -16,7 +16,9 @@
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'hero-line');
     svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = '<path class="main" pathLength="1"/>';
+    const trail = document.documentElement.classList.contains('trail');   // TRIAL fading trail (see style.css)
+    svg.innerHTML = (trail ? '<defs><linearGradient id="hl-trail" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#376BFF" stop-opacity=".3"/><stop offset="1" stop-color="#376BFF"/></linearGradient></defs>' : '')
+      + '<path class="main" pathLength="1"' + (trail ? ' style="stroke:url(#hl-trail)"' : '') + '/>';
     steps.prepend(svg);
     const main = svg.querySelector('.main');
     const nodes = hs.map(h => h.querySelector('.node'));
@@ -37,6 +39,8 @@
         pts = [[a[0] - (c[0] - a[0]) * k, a[1] - (c[1] - a[1]) * k], ...p];
       }
       main.setAttribute('d', 'M' + pts.map(q => q.join(',')).join(' L'));
+      const g = svg.querySelector('#hl-trail');                                  // trail: faint where the line comes in, full at Validate
+      if (g) [['x1', pts[0][0]], ['y1', pts[0][1]], ['x2', b[0]], ['y2', b[1]]].forEach(([k, v]) => g.setAttribute(k, v));
       const seg = Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]) * 2, pre = Math.hypot(pts[0][0] - p[0][0], pts[0][1] - p[0][1]);
       lead = pts.length > p.length ? DRAW * pre / seg : 0;
       main.style.transitionDuration = (DRAW + lead) + 's';                      // same speed, just a longer run-up
@@ -89,17 +93,27 @@
     const anchor = innerHeight * 0.62;
     const atBottom = scrollY + innerHeight >= document.documentElement.scrollHeight - 4;
     const flow = [];
+    // section rails: the blue tip sits where a section's circle rests when its start is in place (just under the header),
+    // so a section begins with its line empty and the line fills as you read down, reaching the next circle as it arrives
+    const HEAD_Y = 116;
     rails.forEach(r => {
       const b = r.rail.getBoundingClientRect();
-      const p = atBottom ? 1 : Math.min(1, Math.max(0, (anchor - b.top) / b.height));
+      const p = atBottom ? 1 : Math.min(1, Math.max(0, (HEAD_Y - b.top) / b.height));
       r.rail.style.setProperty('--p', p);
-      flow.push([r.node, atBottom || b.top <= anchor]);
+      flow.push([r.node, atBottom || b.top <= HEAD_Y]);
     });
     ends.forEach(n => flow.push([n, atBottom || n.getBoundingClientRect().top <= anchor]));
     // the last line: in from off-screen left, reaching the final circle just as it lights up
     endLines.forEach(l => {
       const r = l.nextElementSibling.getBoundingClientRect(), y = r.top + r.height / 2, from = innerHeight * 0.95;
-      l.style.setProperty('--p', atBottom ? 1 : Math.min(1, Math.max(0, (from - y) / (from - anchor))));
+      const p = atBottom ? 1 : Math.min(1, Math.max(0, (from - y) / (from - anchor)));
+      l.style.setProperty('--p', p);
+      // one line: only once it has reached the circle does it carry on past it, out to the right edge,
+      // finishing as the circle settles at the top (its resting place, 96 + half the 56px circle)
+      const out = l.parentElement.querySelector('.end-out'), rest = 130;
+      const q = atBottom ? 1 : Math.min(1, Math.max(0, (anchor - y) / (anchor - rest)));
+      if (out) out.style.setProperty('--p', q);
+      l.style.setProperty('--tip', 1 - 0.35 * q);   // 0.65 at rest = halfway between 0.3 and 1, so both halves fade at the same rate   // trail: as the line runs on past the circle, the left half behind it lightens
     });
     let cur = null;
     flow.forEach(([n, hit]) => { n.classList.toggle('on', hit); if (hit) cur = n; });
@@ -150,7 +164,8 @@
     cards[0].parentElement.classList.toggle('overview', all);
     cards.forEach((c, k) => { c.classList.toggle('active', k === i); c.classList.toggle('shown', k === shown); c.classList.toggle('past', !all && k < shown); });
     proj.querySelector('.steps').style.setProperty('--fill', all ? 'calc(100% + 50vw)' : (shown + 0.5) / cards.length * 100 + '%');   // blue up to the current circle
-    projSteps.forEach((s, k) => { const on = all || k <= i, cur = all || k === i; s.classList.toggle('on', on); s.classList.toggle('current', cur); s.firstChild.classList.toggle('on', on); s.firstChild.classList.toggle('current', cur); });
+    const j = Math.max(0, i);                            // arriving: the first circle comes in already filled, so it doesn't flash white → blue on landing
+    projSteps.forEach((s, k) => { const on = all || k <= j, cur = all || k === j; s.classList.toggle('on', on); s.classList.toggle('current', cur); s.firstChild.classList.toggle('on', on); s.firstChild.classList.toggle('current', cur); });
 
   }
   // one gesture = one project: inside the pinned range, wheel/keys/swipe step exactly one card
@@ -160,7 +175,7 @@
   const stepTop = k => stepStart() + (k + 0.5) / stops() * stepSpan();
   const goTo = k => { busyUntil = performance.now() + 750; setActive(k); scrollTo({ top: stepTop(k), behavior: reduce ? 'auto' : 'smooth' }); };
   projSteps.forEach((s, k) => s.addEventListener('click', () => goTo(k)));
-  let lastInput = 0, held = false;
+  let held = false;
   // from the cover, one gesture (or a click) winds the whole turn by itself, quickly, to the first project;
   // one gesture back up from the first project winds back to the cover
   let glideUntil = 0;
@@ -182,14 +197,13 @@
   }
   if (heroEl) heroEl.addEventListener('click', e => { if (mg && !e.target.closest('a')) glide(stepTop(0)); });
 
-  function step(dir, e) {
+  function step(dir, e, fresh) {
     if (!proj || !pinned.matches) return;
     const y = scrollY, intro = mg && y < stepStart() - 2;
     if (!intro && (y < stepStart() - 2 || y > stepStart() + stepSpan() + 2)) return; // outside: scroll freely
     if (intro && dir < 0 && y <= 1) return;               // already at the very top
-    const now = performance.now(), quiet = now - lastInput > 220;
-    lastInput = now;
-    if (quiet) held = false;                              // a pause between gestures frees the next step
+    const now = performance.now();
+    if (fresh) held = false;                              // a new gesture (see wheelFresh) frees the next step
     if (held || now < busyUntil || now < glideUntil) { e.preventDefault(); return; } // same gesture / still moving: swallow
     if (intro) { e.preventDefault(); held = true; glide(dir > 0 ? stepTop(0) : 0); return; }
     const next = active + dir;
@@ -213,11 +227,11 @@
       .forEach(h => t.push({ y: pageTop(h) - SNAP_GAP, block: pageTop(h.closest('section,.next') || h) }));
     return t.map(o => ({ y: Math.round(o.y), block: o.block })).sort((a, b) => a.y - b.y);
   };
-  let snapLast = 0, snapHeld = false;
-  function snap(dir, e) {
+  let snapHeld = false;
+  function snap(dir, e, fresh) {
     if (!pinned.matches || e.defaultPrevented) return;   // phones and small windows: plain scrolling
-    const y = scrollY, now = performance.now(), quiet = now - snapLast > 220;
-    snapLast = now; if (quiet) snapHeld = false;
+    const y = scrollY, now = performance.now();
+    if (fresh) snapHeld = false;
     if (snapHeld || now < glideUntil) { e.preventDefault(); return; }               // rest of the same gesture
     const st = snapStops(), tops = st.map(o => o.y);
     if (tops.length && y < tops[0] - 4) return;                                     // above: the projects handle it
@@ -235,17 +249,41 @@
     e.preventDefault(); snapHeld = true; glide(to, Math.min(1100, 500 + d / innerHeight * 500), 'out');
   }
 
-  addEventListener('wheel', e => { if (Math.abs(e.deltaY) > 2) { step(Math.sign(e.deltaY), e); snap(Math.sign(e.deltaY), e); } }, { passive: false });
+  // Is this wheel event the start of a new gesture? A trackpad keeps sending fading "momentum" events for a second or
+  // more after the fingers lift, so waiting for a pause made a second swipe look like the same gesture (it was swallowed
+  // until the hand stopped). A new swipe is: a pause, a change of direction, or the delta suddenly growing again.
+  // Momentum deltas are irregular (e.g. 30, 14, 27, 11…), so comparing one event with the one before mistook that
+  // wobble for new swipes: the page kept re-snapping and shook. Now the last 3 events must clearly outweigh the
+  // ones before them (a real new push), so one long swipe counts once; keep swiping and each new push moves on.
+  let wLast = 0, wDir = 0, wStart = 0;
+  const wHist = [];
+  function wheelFresh(e) {
+    const now = performance.now(), m = Math.abs(e.deltaY), d = Math.sign(e.deltaY);
+    let fresh = now - wLast > 160 || d !== wDir;
+    wLast = now; wDir = d;
+    if (fresh) { wHist.length = 0; wHist.push(m); wStart = now; return true; }
+    wHist.push(m); if (wHist.length > 10) wHist.shift();
+    if (wHist.length < 6 || now - wStart < 300) return false;   // a swipe's own wind-up is not a new push
+    const recent = (wHist.at(-1) + wHist.at(-2) + wHist.at(-3)) / 3, prev = wHist.slice(0, -3);
+    const base = prev.reduce((a, b) => a + b, 0) / prev.length, low = Math.min(...prev);
+    fresh = recent > base * 1.8 && recent - base > 8 && wHist.at(-1) > low * 2.5;
+    if (fresh) { wHist.length = 0; wHist.push(m); wStart = now; }
+    return fresh;
+  }
+  addEventListener('wheel', e => {
+    const fresh = wheelFresh(e);
+    if (Math.abs(e.deltaY) > 2) { step(Math.sign(e.deltaY), e, fresh); snap(Math.sign(e.deltaY), e, fresh); }
+  }, { passive: false });
   addEventListener('keydown', e => {
     const d = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 }[e.key];
-    if (d && !e.target.closest('input,textarea')) { const k = e.shiftKey && e.key === ' ' ? -1 : d; step(k, e); snap(k, e); }
+    if (d && !e.target.closest('input,textarea')) { const k = e.shiftKey && e.key === ' ' ? -1 : d; step(k, e, !e.repeat); snap(k, e, !e.repeat); }
   });
   let ty = null;
   addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });
   addEventListener('touchmove', e => {
     if (ty === null) return;
     const dy = ty - e.touches[0].clientY;
-    if (Math.abs(dy) > 30) { step(Math.sign(dy), e); if (e.defaultPrevented) ty = null; }
+    if (Math.abs(dy) > 30) { step(Math.sign(dy), e, true); if (e.defaultPrevented) ty = null; }
   }, { passive: false });
 
   /* ---------- 5. Morph: the hero's Why–Decide–Validate line turns, straightens and stretches
@@ -266,7 +304,10 @@
       if (!pinned.matches) { mg = null; return; }
       const sw = steps.offsetParent, wrap = bar.offsetParent;
       const S = hstepEls.map(h => [sw.offsetLeft + steps.offsetLeft + h.offsetLeft, sw.offsetTop + steps.offsetTop + h.offsetTop]);
-      const top = proj.offsetTop + mainEl.offsetTop, by = bar.offsetTop + 1;  // bar's y on screen while pinned (the pinned box sits at the top)
+      const pin = proj.querySelector('.proj-pin') || proj;
+      // the project line's centre on screen while pinned (the pinned box sits at the top): .steps::before is 2px tall at top:-2px,
+      // so its centre is the bar's top − 1, measured exactly (fractions included) so the turning line lands on it without a jump
+      const top = proj.offsetTop + mainEl.offsetTop, by = bar.getBoundingClientRect().top - pin.getBoundingClientRect().top - 1;
       const bx0 = wrap.offsetLeft + bar.offsetLeft, bw = bar.offsetWidth;
       bar.style.setProperty('--below', (innerHeight - by) + 'px');            // gray under the bar fills the pinned screen, no further
       // the blue tip (Validate) travels to project 01's circle while the line turns flat;
@@ -334,4 +375,25 @@
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
   }), { rootMargin: '0px 0px -10% 0px' });
   document.querySelectorAll('.rv').forEach(el => io.observe(el));
+
+  /* ---------- 7. Email / phone: a click copies instead of opening a mail app or dialer ---------- */
+  let toast = null, toastT = 0;
+  const say = msg => {
+    if (!toast) { toast = document.createElement('div'); toast.className = 'copied'; toast.setAttribute('role', 'status'); document.body.appendChild(toast); }
+    toast.textContent = msg; toast.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('show'), 1800);
+  };
+  const copy = async text => {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+    const ta = document.createElement('textarea');                       // fallback where the clipboard API is blocked
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove(); return ok;
+  };
+  document.querySelectorAll('[data-copy]').forEach(a => a.addEventListener('click', async e => {
+    e.preventDefault();
+    const label = a.dataset.copyLabel || '';
+    say(await copy(a.dataset.copy) ? `${label}를 복사했어요` : `${a.dataset.copy} · 복사하지 못했어요`);
+  }));
 })();
