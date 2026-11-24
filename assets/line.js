@@ -96,16 +96,18 @@
     // section rails: the blue tip sits where a section's circle rests when its start is in place (just under the header),
     // so a section begins with its line empty and the line fills as you read down, reaching the next circle as it arrives
     const HEAD_Y = 116;
-    rails.forEach(r => {
-      const b = r.rail.getBoundingClientRect();
+    const rb = rails.map(r => r.rail.getBoundingClientRect()), eb = ends.map(n => n.getBoundingClientRect().top),
+          lb = endLines.map(l => l.nextElementSibling.getBoundingClientRect());   // all reads first, then writes: no forced layout per element
+    rails.forEach((r, i) => {
+      const b = rb[i];
       const p = atBottom ? 1 : Math.min(1, Math.max(0, (HEAD_Y - b.top) / b.height));
       r.rail.style.setProperty('--p', p);
       flow.push([r.node, atBottom || b.top <= HEAD_Y]);
     });
-    ends.forEach(n => flow.push([n, atBottom || n.getBoundingClientRect().top <= anchor]));
+    ends.forEach((n, i) => flow.push([n, atBottom || eb[i] <= anchor]));
     // the last line: in from off-screen left, reaching the final circle just as it lights up
-    endLines.forEach(l => {
-      const r = l.nextElementSibling.getBoundingClientRect(), y = r.top + r.height / 2, from = innerHeight * 0.95;
+    endLines.forEach((l, i) => {
+      const r = lb[i], y = r.top + r.height / 2, from = innerHeight * 0.95;
       const p = atBottom ? 1 : Math.min(1, Math.max(0, (from - y) / (from - anchor)));
       l.style.setProperty('--p', p);
       // one line: only once it has reached the circle does it carry on past it, out to the right edge,
@@ -160,9 +162,10 @@
     if (i === active) return;
     active = i;
     const all = i === cards.length;                      // last stop: the line runs off to the right, all projects side by side
-    const shown = all ? -1 : Math.max(0, i);              // before arrival the first project is already in view, still closed
+    const shown = all ? -1 : Math.max(0, i);              // before arrival the first project is already in view (and open, see below)
     cards[0].parentElement.classList.toggle('overview', all);
-    cards.forEach((c, k) => { c.classList.toggle('active', k === i); c.classList.toggle('shown', k === shown); c.classList.toggle('past', !all && k < shown); });
+    cards.forEach((c, k) => { c.classList.toggle('active', k === Math.max(0, i));   // while arriving (i = -1) the first card comes in already open: its words used to pop in after it landed
+       c.classList.toggle('shown', k === shown); c.classList.toggle('past', !all && k < shown); });
     proj.querySelector('.steps').style.setProperty('--fill', all ? 'calc(100% + 50vw)' : (shown + 0.5) / cards.length * 100 + '%');   // blue up to the current circle
     const j = Math.max(0, i);                            // arriving: the first circle comes in already filled, so it doesn't flash white → blue on landing
     projSteps.forEach((s, k) => { const on = all || k <= j, cur = all || k === j; s.classList.toggle('on', on); s.classList.toggle('current', cur); s.firstChild.classList.toggle('on', on); s.firstChild.classList.toggle('current', cur); });
@@ -219,20 +222,24 @@
   const SNAP_GAP = 96;                                   // heading sits this far below the top (header 64 + a little air)
   const pageTop = el => el.getBoundingClientRect().top + scrollY;
   // each stop: where to park, and where that stop's own block begins (the previous block's text ends just above it)
+  let snapMemo = null, snapAt = 0;                       // a trackpad fires ~60 wheel events/s: measure the page at most every 400ms
   const snapStops = () => {
+    const nowT = performance.now();
+    if (snapMemo && nowT - snapAt < 400) return snapMemo;
+    snapAt = nowT;
     const t = [];
     if (proj && pinned.matches) t.push({ y: stepTop(stops() - 1), block: pageTop(proj) + proj.offsetHeight });  // the projects overview
     else t.push({ y: 0, block: 0 });                                                                            // case-study pages: the cover
     document.querySelectorAll('main > .sec:not(.proj) .sec-head, main > .cs-sec .sec-head, .end .node-wrap, .next .node-wrap')
       .forEach(h => t.push({ y: pageTop(h) - SNAP_GAP, block: pageTop(h.closest('section,.next') || h) }));
-    return t.map(o => ({ y: Math.round(o.y), block: o.block })).sort((a, b) => a.y - b.y);
+    return snapMemo = t.map(o => ({ y: Math.round(o.y), block: o.block })).sort((a, b) => a.y - b.y);
   };
   let snapHeld = false;
   function snap(dir, e, fresh) {
     if (!pinned.matches || e.defaultPrevented) return;   // phones and small windows: plain scrolling
     const y = scrollY, now = performance.now();
     if (fresh) snapHeld = false;
-    if (snapHeld || now < glideUntil) { e.preventDefault(); return; }               // rest of the same gesture
+    if (snapHeld || now < glideUntil) { e.preventDefault(); return; }               // rest of the same gesture: one swipe = one move
     const st = snapStops(), tops = st.map(o => o.y);
     if (tops.length && y < tops[0] - 4) return;                                     // above: the projects handle it
     const k = dir > 0 ? tops.findIndex(t => t > y + 4) : tops.findLastIndex(t => t < y - 4);
@@ -256,6 +263,7 @@
   // wobble for new swipes: the page kept re-snapping and shook. Now the last 3 events must clearly outweigh the
   // ones before them (a real new push), so one long swipe counts once; keep swiping and each new push moves on.
   let wLast = 0, wDir = 0, wStart = 0;
+  let pushN = 0;
   const wHist = [];
   function wheelFresh(e) {
     const now = performance.now(), m = Math.abs(e.deltaY), d = Math.sign(e.deltaY);
@@ -271,12 +279,19 @@
     return fresh;
   }
   addEventListener('wheel', e => {
-    const fresh = wheelFresh(e);
+    if (document.querySelector('dialog.zoom[open]')) return;
+    let fresh = wheelFresh(e);
+    // parked after a move, swipe still going: carry on to the next section only if the hand keeps pushing (2 events in a row above 30; a fading momentum tail is below)
+    // ponytail: tune 30 / 2 if too eager / too stiff
+    if ((held || snapHeld) && performance.now() >= glideUntil) {
+      pushN = Math.abs(e.deltaY) > 30 ? pushN + 1 : 0;
+      if (pushN >= 2) { fresh = true; pushN = 0; }
+    }
     if (Math.abs(e.deltaY) > 2) { step(Math.sign(e.deltaY), e, fresh); snap(Math.sign(e.deltaY), e, fresh); }
   }, { passive: false });
   addEventListener('keydown', e => {
     const d = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 }[e.key];
-    if (d && !e.target.closest('input,textarea')) { const k = e.shiftKey && e.key === ' ' ? -1 : d; step(k, e, !e.repeat); snap(k, e, !e.repeat); }
+    if (d && !e.target.closest('input,textarea') && !document.querySelector('dialog.zoom[open]')) { const k = e.shiftKey && e.key === ' ' ? -1 : d; step(k, e, !e.repeat); snap(k, e, !e.repeat); }
   });
   let ty = null;
   addEventListener('touchstart', e => { ty = e.touches[0].clientY; }, { passive: true });
@@ -364,17 +379,40 @@
   const top = document.querySelector('.top');
   const navLinks = [...document.querySelectorAll('.nav a[href^="#"]')];
   const secs = navLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  let navRaf = 0;
   addEventListener('scroll', () => {
-    top && top.classList.toggle('scrolled', scrollY > 24);
-    const y = scrollY + innerHeight * 0.4;
-    let act = null; secs.forEach(s => { if (s.offsetTop <= y) act = s.id; });
-    navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + act));
+    if (navRaf) return;
+    navRaf = requestAnimationFrame(() => {
+      navRaf = 0;
+      top && top.classList.toggle('scrolled', scrollY > 24);
+      const y = scrollY + innerHeight * 0.4;
+      let act = null; secs.forEach(s => { if (s.offsetTop <= y) act = s.id; });
+      navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + act));
+    });
   }, { passive: true });
 
   const io = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
   }), { rootMargin: '0px 0px -10% 0px' });
   document.querySelectorAll('.rv').forEach(el => io.observe(el));
+
+  /* ---------- 8. Plain pictures (.fig, covers) open large on click; click / Esc closes (native <dialog>) ---------- */
+  let zoom = null;
+  const openZoom = img => {
+    if (!zoom) {
+      zoom = document.createElement('dialog'); zoom.className = 'zoom';
+      zoom.innerHTML = '<img alt=""><button type="button" class="zoom-x" aria-label="닫기">×</button>';
+      zoom.addEventListener('click', () => zoom.close());
+      document.body.appendChild(zoom);
+    }
+    const big = zoom.firstChild; big.src = img.currentSrc || img.src; big.alt = img.alt;
+    zoom.showModal();
+  };
+  document.querySelectorAll('.fig img, .cs-cover img').forEach(img => {
+    img.tabIndex = 0; img.setAttribute('role', 'button'); img.setAttribute('aria-label', (img.alt || '이미지') + ' — 크게 보기');
+    img.addEventListener('click', () => openZoom(img));
+    img.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openZoom(img); } });
+  });
 
   /* ---------- 7. Email / phone: a click copies instead of opening a mail app or dialer ---------- */
   let toast = null, toastT = 0;
