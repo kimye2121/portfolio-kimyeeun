@@ -4,6 +4,7 @@
 (function () {
   const NS = 'http://www.w3.org/2000/svg';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let heroIntro = null;                              // set by the hero below: { play } replays the intro
 
   // a reload always starts from the top (links with #section still jump there)
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -54,11 +55,27 @@
     if (document.fonts) document.fonts.ready.then(layout);
 
     const light = i => { nodes.forEach((n, j) => { n.classList.toggle('on', j <= i); n.classList.toggle('current', j === i); }); };
-    if (reduce) { svg.classList.add('drawn'); light(2); }
-    else {
+    let timers = [], playing = false;
+    // the intro: line draws, circles light one by one (times match the draw, see .hero-line)
+    const play = () => {
+      timers.forEach(clearTimeout);
+      playing = true; light(-1);
+      main.style.transition = 'none'; svg.classList.remove('drawn');              // snap back to "not drawn" (no backwards animation), then draw again
+      void main.getBoundingClientRect(); main.style.transition = ''; main.style.transitionDuration = (DRAW + lead) + 's';
       requestAnimationFrame(() => requestAnimationFrame(() => svg.classList.add('drawn')));
-      [250, 250 + DRAW * 500, 250 + DRAW * 1000].forEach((t, i) => setTimeout(() => light(i), t + lead * 1000)); // matches the draw (.hero-line)
-    }
+      timers = [250, 250 + DRAW * 500, 250 + DRAW * 1000].map((t, i) => setTimeout(() => light(i), t + lead * 1000));
+      timers.push(setTimeout(() => { playing = false; }, 2600 + lead * 1000));
+    };
+    // jump straight to the finished state (reduced motion, or the page was scrolled before/while it played):
+    // otherwise the turning overlay shows the finished line + circles while only the words step through their colours
+    const finish = () => {
+      timers.forEach(clearTimeout); timers = []; playing = false;
+      main.style.transition = 'none'; svg.classList.add('drawn'); light(2);
+      void main.getBoundingClientRect(); main.style.transition = ''; main.style.transitionDuration = (DRAW + lead) + 's';
+    };
+    heroIntro = { play };
+    if (reduce || scrollY > 0) finish(); else play();
+    addEventListener('scroll', () => { if (playing && scrollY > 0) finish(); }, { passive: true });
   }
 
   /* ---------- 2. Section rails: grow with scroll, fade at the end ---------- */
@@ -365,6 +382,13 @@
     if (document.fonts) document.fonts.ready.then(morphLayout);
   }
 
+  // the name in the header = start over: back to the top and the intro plays again (case-study pages: it stays a plain link to the main page)
+  document.querySelectorAll('.brand').forEach(a => a.addEventListener('click', e => {
+    if (!heroIntro || !(a.getAttribute('href') || '').startsWith('#')) return;
+    e.preventDefault();
+    if (scrollY > 2) { glide(0, 700, 'out'); setTimeout(heroIntro.play, 780); } else heroIntro.play();
+    history.replaceState(null, '', location.pathname + location.search);
+  }));
   // "Projects" links land on the projects view itself (heading + first project), not on the empty turning stage
   const toProjects = smooth => { if (!mg) return; if (smooth) glide(stepTop(0)); else scrollTo({ top: stepTop(0), behavior: 'auto' }); };
   document.querySelectorAll('a[href="#projects"]').forEach(a => a.addEventListener('click', e => { if (mg) { e.preventDefault(); toProjects(true); history.replaceState(null, '', '#projects'); } }));
