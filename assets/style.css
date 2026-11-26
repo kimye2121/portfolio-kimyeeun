@@ -289,6 +289,19 @@ main{overflow-x:clip}
 .cs-meta dd{font-size:15.5px;color:var(--ink-2)}
 .cs-meta dd span{display:block}
 .cs-meta dd span+span{margin-top:var(--s-3)}
+/* PC: 글 왼쪽 · 대표 이미지 오른쪽 → 제목부터 이미지까지 한 화면에 (노트북 높이 포함) */
+@media (min-width:1081px){
+  .cs-hero{padding-top:calc(64px + var(--s-6))}              /* 64px = 고정 헤더 높이 */
+  .cs-hero .wrap{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:repeat(6,auto) 1fr auto;column-gap:var(--s-7)}
+  .cs-hero .wrap>*{grid-column:1}
+  .back{margin-bottom:var(--s-4)}
+  .cs-title{font-size:clamp(38px,3.8vw,64px)}
+  .cs-title small{white-space:nowrap}
+  .cs-meta{grid-template-columns:1fr 1fr;gap:var(--s-4) var(--s-5);margin-top:var(--s-6)}
+  .cs-hero .wrap>.cs-cover{grid-column:2;grid-row:1/8;align-self:center;justify-self:end;margin-top:0}
+  .cs-cover img{max-height:calc(100svh - 64px - var(--s-6) - var(--s-7))}   /* 화면이 낮으면 이미지가 줄어듦 */
+  .cs-hero .wrap>.summary{grid-column:1/-1}
+}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-5);margin-top:var(--s-7)}
 .summary div{background:var(--surface);border-radius:var(--radius-md);padding:var(--s-5);box-shadow:var(--shadow-2)}
 .summary b{color:var(--blue);font-weight:600;font-size:14px;display:block;margin-bottom:6px}
