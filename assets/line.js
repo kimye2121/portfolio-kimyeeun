@@ -4,6 +4,7 @@
 (function () {
   const NS = 'http://www.w3.org/2000/svg';
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const phone = matchMedia('(max-width:760px)');
   let heroIntro = null;                              // set by the hero below: { play } replays the intro
 
   // a reload always starts from the top (links with #section still jump there)
@@ -130,7 +131,8 @@
       // one line: only once it has reached the circle does it carry on past it, out to the right edge,
       // finishing as the circle settles at the top (its resting place, 96 + half the 56px circle)
       const out = l.parentElement.querySelector('.end-out'), rest = 130;
-      const q = atBottom ? 1 : Math.min(1, Math.max(0, (anchor - y) / (anchor - rest)));
+      // phone: the page often ends before the circle reaches its resting place, so the right half grows with the left (no half-drawn line)
+      const q = atBottom ? 1 : phone.matches ? p : Math.min(1, Math.max(0, (anchor - y) / (anchor - rest)));
       if (out) out.style.setProperty('--p', q);
       l.style.setProperty('--tip', 1 - 0.35 * q);   // 0.65 at rest = halfway between 0.3 and 1, so both halves fade at the same rate   // trail: as the line runs on past the circle, the left half behind it lightens
     });
@@ -458,4 +460,57 @@
     const label = a.dataset.copyLabel || '';
     say(await copy(a.dataset.copy) ? `${label}를 복사했어요` : `${a.dataset.copy} · 복사하지 못했어요`);
   }));
+  /* phone: project cards fold out with "자세히 보기" (the toggle is hidden above 760px by CSS); the rest of the card stays a link */
+  document.querySelectorAll('#projects .card').forEach(card => {
+    const body = card.querySelector('.body'), detail = card.querySelector('.detail');
+    if (!body || !detail) return;
+    const t = document.createElement('span');
+    t.className = 'peek'; t.setAttribute('role', 'button'); t.tabIndex = 0;
+    const set = open => { card.classList.toggle('open', open); t.textContent = open ? '접기' : '자세히 보기'; t.setAttribute('aria-expanded', open); };
+    set(false);
+    const flip = e => { e.preventDefault(); e.stopPropagation(); set(!card.classList.contains('open')); };
+    t.addEventListener('click', flip);
+    t.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') flip(e); });
+    body.appendChild(t);
+  });
+  /* phone: Archive rows swipe right → left. The picture slides in from the right, see-through, the row's full height.
+     Swipe far (past ~45% of the row) and let go → the document opens; let go before that → the row springs back as it was. */
+  const phoneW = matchMedia('(max-width:760px)');
+  document.querySelectorAll('.arc').forEach(a => {
+    let x0 = 0, y0 = 0, id = null, axis = null, dx = 0;
+    const far = () => dx > a.offsetWidth * 0.45;
+    const set = v => { dx = v; a.style.setProperty('--sw', v + 'px'); a.classList.toggle('go', far()); };
+    a.addEventListener('pointerdown', e => {
+      if (!phoneW.matches || e.button > 0) return;
+      x0 = e.clientX; y0 = e.clientY; id = e.pointerId; axis = null; dx = 0;
+    });
+    a.addEventListener('pointermove', e => {
+      if (e.pointerId !== id) return;
+      const mx = e.clientX - x0, my = e.clientY - y0;
+      if (!axis) {
+        if (Math.hypot(mx, my) < 8) return;
+        axis = Math.abs(mx) > Math.abs(my) && mx < 0 ? 'x' : 'y';    // only a leftward sideways move is a swipe
+        if (axis === 'y') { id = null; return; }                         // up/down: plain scrolling
+        try { a.setPointerCapture(id); } catch (err) {}
+        a.classList.add('swiping');
+      }
+      set(Math.max(0, -mx));
+    });
+    const end = e => {
+      if (e.pointerId !== id) return;
+      id = null;
+      if (axis !== 'x') return;
+      a.classList.remove('swiping');
+      a.dataset.swiped = '1'; setTimeout(() => delete a.dataset.swiped, 400);   // the tap that ends a swipe is not a click
+      if (e.type === 'pointerup' && far()) {
+        const w = window.open(a.href, a.target || '_self', 'noopener');
+        if (!w && a.target === '_blank') location.href = a.href;
+      }
+      set(0);                                                             // back to how it was (also after opening)
+    };
+    a.addEventListener('pointerup', end);
+    a.addEventListener('pointercancel', end);
+    a.addEventListener('click', e => { if (a.dataset.swiped) { e.preventDefault(); e.stopPropagation(); } }, true);
+    a.addEventListener('dragstart', e => { if (phoneW.matches) e.preventDefault(); });
+  });
 })();
